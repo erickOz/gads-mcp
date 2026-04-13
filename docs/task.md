@@ -1,0 +1,7 @@
+- [x] Copiar código fuente desde el directorio temporal `/tmp/` al directorio de destino.
+- [x] Verificar si `uv` está instalado en el sistema.
+- [x] Si `uv` no está instalado, instalarlo o usar `pip` + `venv` según disponibilidad.
+- [x] Instalar dependencias del proyecto.
+- [x] Crear el script `run_mcp.sh` que apunte al archivo de credenciales (`~/.config/google-ads.yaml`).
+- [x] Crear archivo de configuración de ejemplo para clientes MCP.
+- [x] Validar que el servidor se pueda ejecutar sin errores.

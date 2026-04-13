@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "google-ads-mcp": {
+      "command": "/Users/erickoz/Library/CloudStorage/GoogleDrive-e.zea@hype/Mi unidad/4. Proyectos/projects-mkt/gads-mcp/run_mcp.sh",
+      "env": {}
+    }
+  }
+}
