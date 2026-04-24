@@ -19,7 +19,11 @@ import os
 from ads_mcp.coordinator import mcp_server
 from ads_mcp.scripts.generate_views import update_views_yaml
 from ads_mcp.tools import api
+from ads_mcp.tools import assets
+from ads_mcp.tools import campaigns
+from ads_mcp.tools import conversions
 from ads_mcp.tools import docs
+from ads_mcp.tools import mutate
 
 import dotenv
 from fastmcp.server.auth.providers.google import GoogleProvider
@@ -29,7 +33,7 @@ from fastmcp.server.auth.providers.google import GoogleTokenVerifier
 dotenv.load_dotenv()
 
 
-tools = [api, docs]
+tools = [api, assets, campaigns, conversions, docs, mutate]
 
 if os.getenv("USE_GOOGLE_OAUTH_ACCESS_TOKEN"):
   mcp_server.auth = GoogleTokenVerifier()
