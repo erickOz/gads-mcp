@@ -19,17 +19,20 @@ from ads_mcp.coordinator import mcp_server
 from ads_mcp.scripts.generate_views import update_views_yaml
 from ads_mcp.tools import api
 from ads_mcp.tools import assets
+from ads_mcp.tools import audiences
 from ads_mcp.tools import campaigns
 from ads_mcp.tools import conversions
 from ads_mcp.tools import docs
 from ads_mcp.tools import mutate
+from ads_mcp.tools import recommendations
+from ads_mcp.tools import reporting
 
 import dotenv
 
 dotenv.load_dotenv()
 
 
-tools = [api, assets, campaigns, conversions, docs, mutate]
+tools = [api, assets, audiences, campaigns, conversions, docs, mutate, recommendations, reporting]
 
 
 def main():
