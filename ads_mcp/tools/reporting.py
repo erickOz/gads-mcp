@@ -99,6 +99,7 @@ def get_search_terms_report(
     campaign_ids: list[str] | None = None,
     ad_group_ids: list[str] | None = None,
     min_impressions: int = 0,
+    limit: int = 500,
     login_customer_id: str | None = None,
 ) -> dict:
   """Returns the search terms report with performance metrics.
@@ -106,13 +107,17 @@ def get_search_terms_report(
   Critical for discovering new negative keywords and keyword expansion
   opportunities. Shows actual queries that triggered your ads.
 
+  Use campaign_ids or ad_group_ids to scope the query and reduce response time.
+  Increase min_impressions to filter noise and speed up results.
+
   Args:
       customer_id: The ID of the customer account (digits only).
       date_range: Predefined date range.
       campaign_ids: Optional list of campaign IDs to filter.
       ad_group_ids: Optional list of ad group IDs to filter.
       min_impressions: Only return terms with at least this many impressions.
-          Defaults to 0 (all terms).
+          Defaults to 0 (all terms). Use 5-10 to reduce noise.
+      limit: Maximum number of rows to return. Defaults to 500.
       login_customer_id: Optional MCC account ID.
 
   Returns:
@@ -146,7 +151,7 @@ def get_search_terms_report(
   if min_impressions > 0:
     gaql += f" AND metrics.impressions >= {min_impressions}"
 
-  gaql += " ORDER BY metrics.impressions DESC"
+  gaql += f" ORDER BY metrics.impressions DESC LIMIT {limit}"
 
   response = execute_gaql(query=gaql, customer_id=customer_id, login_customer_id=login_customer_id)
 
@@ -179,9 +184,15 @@ def get_keyword_performance(
     campaign_ids: list[str] | None = None,
     ad_group_ids: list[str] | None = None,
     include_paused: bool = True,
+    limit: int = 500,
     login_customer_id: str | None = None,
 ) -> dict:
   """Returns keyword-level performance metrics including Quality Score.
+
+  Returns criterion_id for each keyword — use those IDs directly with
+  update_keyword_status or update_keyword_bid without a separate lookup.
+
+  Use campaign_ids or ad_group_ids to scope the query and reduce response time.
 
   Args:
       customer_id: The ID of the customer account (digits only).
@@ -189,6 +200,7 @@ def get_keyword_performance(
       campaign_ids: Optional list of campaign IDs to filter.
       ad_group_ids: Optional list of ad group IDs to filter.
       include_paused: Include PAUSED keywords. Defaults to True.
+      limit: Maximum number of rows to return. Defaults to 500.
       login_customer_id: Optional MCC account ID.
 
   Returns:
@@ -235,7 +247,7 @@ def get_keyword_performance(
     ids_str = ", ".join(f"'{aid}'" for aid in ad_group_ids)
     gaql += f" AND ad_group.id IN ({ids_str})"
 
-  gaql += " ORDER BY metrics.impressions DESC"
+  gaql += f" ORDER BY metrics.impressions DESC LIMIT {limit}"
 
   response = execute_gaql(query=gaql, customer_id=customer_id, login_customer_id=login_customer_id)
 
@@ -279,6 +291,7 @@ def get_ad_performance(
     date_range: DateRange,
     campaign_ids: list[str] | None = None,
     ad_group_ids: list[str] | None = None,
+    limit: int = 200,
     login_customer_id: str | None = None,
 ) -> dict:
   """Returns ad-level performance metrics including RSA asset strength.
@@ -291,6 +304,7 @@ def get_ad_performance(
       date_range: Predefined date range.
       campaign_ids: Optional list of campaign IDs to filter.
       ad_group_ids: Optional list of ad group IDs to filter.
+      limit: Maximum number of rows to return. Defaults to 200.
       login_customer_id: Optional MCC account ID.
 
   Returns:
@@ -327,7 +341,7 @@ def get_ad_performance(
     ids_str = ", ".join(f"'{aid}'" for aid in ad_group_ids)
     gaql += f" AND ad_group.id IN ({ids_str})"
 
-  gaql += " ORDER BY metrics.impressions DESC"
+  gaql += f" ORDER BY metrics.impressions DESC LIMIT {limit}"
 
   response = execute_gaql(query=gaql, customer_id=customer_id, login_customer_id=login_customer_id)
 
@@ -363,6 +377,7 @@ def get_quality_score_report(
     campaign_ids: list[str] | None = None,
     ad_group_ids: list[str] | None = None,
     min_quality_score: int | None = None,
+    limit: int = 500,
     login_customer_id: str | None = None,
 ) -> dict:
   """Returns current Quality Score breakdown for all active keywords.
@@ -382,6 +397,7 @@ def get_quality_score_report(
       ad_group_ids: Optional list of ad group IDs to filter.
       min_quality_score: Only return keywords with QS >= this value.
           Use to find low-QS keywords (e.g. min_quality_score=1, filter in code).
+      limit: Maximum number of rows to return. Defaults to 500.
       login_customer_id: Optional MCC account ID.
 
   Returns:
@@ -415,7 +431,7 @@ def get_quality_score_report(
     ids_str = ", ".join(f"'{aid}'" for aid in ad_group_ids)
     gaql += f" AND ad_group.id IN ({ids_str})"
 
-  gaql += " ORDER BY ad_group_criterion.quality_info.quality_score ASC"
+  gaql += f" ORDER BY ad_group_criterion.quality_info.quality_score ASC LIMIT {limit}"
 
   response = execute_gaql(query=gaql, customer_id=customer_id, login_customer_id=login_customer_id)
 

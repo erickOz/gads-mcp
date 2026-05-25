@@ -178,7 +178,7 @@ def remove_ad_group_criteria(
 ) -> dict:
   """Removes keywords or criteria from an ad group by criterion ID.
 
-  Use execute_gaql to find criterion IDs via ad_group_criterion.criterion_id.
+  To get criterion_ids, use get_keyword_performance filtered by ad_group_id.
   Useful for removing and recreating keywords with a different match type.
 
   Args:
@@ -221,17 +221,13 @@ def update_keyword_status(
 ) -> dict:
   """Updates the status of one or more keywords (criteria) in an ad group.
 
-  Use execute_gaql to find criterion IDs:
-    SELECT ad_group_criterion.criterion_id, ad_group_criterion.keyword.text,
-           ad_group_criterion.status
-    FROM ad_group_criterion
-    WHERE ad_group.id = <ad_group_id>
-      AND ad_group_criterion.type = 'KEYWORD'
+  To get criterion_ids, use get_keyword_performance filtered by ad_group_id —
+  it returns criterion_id for each keyword in the results.
 
   Args:
       customer_id: The ID of the customer account (digits only).
       ad_group_id: The ID of the ad group containing the keywords.
-      criterion_ids: List of criterion IDs to update.
+      criterion_ids: List of criterion IDs to update (from get_keyword_performance).
       status: New status: ENABLED or PAUSED.
       login_customer_id: Optional MCC account ID.
 
@@ -279,17 +275,13 @@ def update_keyword_bid(
 ) -> dict:
   """Updates the CPC bid for one or more keywords in an ad group.
 
-  Use execute_gaql to find criterion IDs:
-    SELECT ad_group_criterion.criterion_id, ad_group_criterion.keyword.text,
-           ad_group_criterion.cpc_bid_micros
-    FROM ad_group_criterion
-    WHERE ad_group.id = <ad_group_id>
-      AND ad_group_criterion.type = 'KEYWORD'
+  To get criterion_ids, use get_keyword_performance filtered by ad_group_id —
+  it returns criterion_id and current cpc_bid for each keyword.
 
   Args:
       customer_id: The ID of the customer account (digits only).
       ad_group_id: The ID of the ad group containing the keywords.
-      criterion_ids: List of criterion IDs to update.
+      criterion_ids: List of criterion IDs to update (from get_keyword_performance).
       cpc_bid_micros: New max CPC bid in micros (e.g. 1500000 = $1.50 USD).
       login_customer_id: Optional MCC account ID.
 
