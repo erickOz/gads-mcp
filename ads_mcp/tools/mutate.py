@@ -67,6 +67,7 @@ def _query_rsa(ads_client, customer_id, ad_group_id, ad_id, login_customer_id):
 MatchType = Literal["EXACT", "PHRASE", "BROAD"]
 AdGroupStatus = Literal["ENABLED", "PAUSED"]
 AdStatus = Literal["ENABLED", "PAUSED", "REMOVED"]
+KeywordStatus = Literal["ENABLED", "PAUSED"]
 
 
 def _build_keyword_operation(ads_client, customer_id, ad_group_id, keyword_text, match_type, negative):
@@ -208,6 +209,123 @@ def remove_ad_group_criteria(
     raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
 
   return {"removed": len(response.results)}
+
+
+@mcp.tool()
+def update_keyword_status(
+    customer_id: str,
+    ad_group_id: str,
+    criterion_ids: StringList,
+    status: KeywordStatus,
+    login_customer_id: str | None = None,
+) -> dict:
+  """Updates the status of one or more keywords (criteria) in an ad group.
+
+  Use execute_gaql to find criterion IDs:
+    SELECT ad_group_criterion.criterion_id, ad_group_criterion.keyword.text,
+           ad_group_criterion.status
+    FROM ad_group_criterion
+    WHERE ad_group.id = <ad_group_id>
+      AND ad_group_criterion.type = 'KEYWORD'
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      ad_group_id: The ID of the ad group containing the keywords.
+      criterion_ids: List of criterion IDs to update.
+      status: New status: ENABLED or PAUSED.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      Number of keywords updated and their resource names.
+  """
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  criterion_service = ads_client.get_service("AdGroupCriterionService")
+  operations = []
+  for criterion_id in criterion_ids:
+    criterion = ads_client.get_type("AdGroupCriterion")
+    criterion.resource_name = (
+        f"customers/{customer_id}/adGroupCriteria/{ad_group_id}~{criterion_id}"
+    )
+    criterion.status = getattr(ads_client.enums.AdGroupCriterionStatusEnum, status)
+    operation = ads_client.get_type("AdGroupCriterionOperation")
+    operation.update = criterion
+    operation.update_mask.paths.append("status")
+    operations.append(operation)
+
+  try:
+    response = criterion_service.mutate_ad_group_criteria(
+        customer_id=customer_id, operations=operations
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  return {
+      "updated": len(response.results),
+      "status": status,
+      "resource_names": [r.resource_name for r in response.results],
+  }
+
+
+@mcp.tool()
+def update_keyword_bid(
+    customer_id: str,
+    ad_group_id: str,
+    criterion_ids: StringList,
+    cpc_bid_micros: int,
+    login_customer_id: str | None = None,
+) -> dict:
+  """Updates the CPC bid for one or more keywords in an ad group.
+
+  Use execute_gaql to find criterion IDs:
+    SELECT ad_group_criterion.criterion_id, ad_group_criterion.keyword.text,
+           ad_group_criterion.cpc_bid_micros
+    FROM ad_group_criterion
+    WHERE ad_group.id = <ad_group_id>
+      AND ad_group_criterion.type = 'KEYWORD'
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      ad_group_id: The ID of the ad group containing the keywords.
+      criterion_ids: List of criterion IDs to update.
+      cpc_bid_micros: New max CPC bid in micros (e.g. 1500000 = $1.50 USD).
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      Number of keywords updated and their resource names.
+  """
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  criterion_service = ads_client.get_service("AdGroupCriterionService")
+  operations = []
+  for criterion_id in criterion_ids:
+    criterion = ads_client.get_type("AdGroupCriterion")
+    criterion.resource_name = (
+        f"customers/{customer_id}/adGroupCriteria/{ad_group_id}~{criterion_id}"
+    )
+    criterion.cpc_bid_micros = cpc_bid_micros
+    operation = ads_client.get_type("AdGroupCriterionOperation")
+    operation.update = criterion
+    operation.update_mask.paths.append("cpc_bid_micros")
+    operations.append(operation)
+
+  try:
+    response = criterion_service.mutate_ad_group_criteria(
+        customer_id=customer_id, operations=operations
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  return {
+      "updated": len(response.results),
+      "cpc_bid_micros": cpc_bid_micros,
+      "cpc_bid_currency": round(cpc_bid_micros / 1_000_000, 2),
+      "resource_names": [r.resource_name for r in response.results],
+  }
 
 
 @mcp.tool()

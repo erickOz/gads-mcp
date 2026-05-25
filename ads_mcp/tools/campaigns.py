@@ -12,6 +12,7 @@ from ads_mcp.tools.api import get_ads_client
 CampaignStatus = Literal["ENABLED", "PAUSED"]
 BiddingStrategy = Literal["MANUAL_CPC", "MAXIMIZE_CLICKS", "MAXIMIZE_CONVERSIONS", "TARGET_CPA", "TARGET_ROAS"]
 MatchType = Literal["EXACT", "PHRASE", "BROAD"]
+TargetImpressionShareLocation = Literal["ANYWHERE_ON_PAGE", "TOP_OF_PAGE", "ABSOLUTE_TOP_OF_PAGE"]
 
 
 @mcp.tool()
@@ -308,3 +309,95 @@ def create_shared_negative_list(
       "keywords_added": len(keywords),
       "campaigns_linked": linked_campaigns,
   }
+
+
+@mcp.tool()
+def update_campaign_bidding_strategy(
+    customer_id: str,
+    campaign_id: str,
+    bidding_strategy: BiddingStrategy,
+    target_cpa_micros: int | None = None,
+    target_roas: float | None = None,
+    target_impression_share_location: TargetImpressionShareLocation | None = None,
+    target_impression_share_fraction: float | None = None,
+    cpc_bid_ceiling_micros: int | None = None,
+    login_customer_id: str | None = None,
+) -> dict:
+  """Changes the bidding strategy of an existing campaign.
+
+  Common transitions:
+  - MANUAL_CPC → TARGET_CPA: after accumulating enough conversion data
+    (typically 30+ conversions/month). Requires target_cpa_micros.
+  - MANUAL_CPC → MAXIMIZE_CONVERSIONS: smart bidding without explicit CPA target.
+  - TARGET_CPA → TARGET_ROAS: when optimizing for revenue. Requires target_roas.
+  - Any → MAXIMIZE_CLICKS: maximize traffic, useful for new campaigns.
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      campaign_id: The ID of the campaign to update.
+      bidding_strategy: New strategy: MANUAL_CPC, MAXIMIZE_CLICKS,
+          MAXIMIZE_CONVERSIONS, TARGET_CPA, or TARGET_ROAS.
+      target_cpa_micros: Required for TARGET_CPA (e.g. 5000000 = $5.00 USD).
+      target_roas: Required for TARGET_ROAS as decimal (e.g. 3.5 = 350% ROAS).
+      target_impression_share_location: For TARGET_IMPRESSION_SHARE only.
+      target_impression_share_fraction: Target impression share 0.0–1.0.
+      cpc_bid_ceiling_micros: Max CPC cap for MAXIMIZE_CLICKS or impression share.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      Resource name of the updated campaign and the new strategy applied.
+  """
+  if bidding_strategy == "TARGET_CPA" and target_cpa_micros is None:
+    raise ToolError("target_cpa_micros is required for TARGET_CPA.")
+  if bidding_strategy == "TARGET_ROAS" and target_roas is None:
+    raise ToolError("target_roas is required for TARGET_ROAS.")
+
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  campaign = ads_client.get_type("Campaign")
+  campaign.resource_name = f"customers/{customer_id}/campaigns/{campaign_id}"
+
+  field_mask_paths = []
+
+  if bidding_strategy == "MANUAL_CPC":
+    campaign.manual_cpc.enhanced_cpc_enabled = False
+    field_mask_paths.append("manual_cpc")
+  elif bidding_strategy == "MAXIMIZE_CLICKS":
+    maximize_clicks = ads_client.get_type("MaximizeClicks")
+    if cpc_bid_ceiling_micros:
+      maximize_clicks.cpc_bid_ceiling_micros = cpc_bid_ceiling_micros
+    campaign.maximize_clicks.CopyFrom(maximize_clicks)
+    field_mask_paths.append("maximize_clicks")
+  elif bidding_strategy == "MAXIMIZE_CONVERSIONS":
+    campaign.maximize_conversions.CopyFrom(ads_client.get_type("MaximizeConversions"))
+    field_mask_paths.append("maximize_conversions")
+  elif bidding_strategy == "TARGET_CPA":
+    campaign.target_cpa.target_cpa_micros = target_cpa_micros
+    field_mask_paths.append("target_cpa")
+  elif bidding_strategy == "TARGET_ROAS":
+    campaign.target_roas.target_roas = target_roas
+    field_mask_paths.append("target_roas")
+
+  operation = ads_client.get_type("CampaignOperation")
+  operation.update = campaign
+  operation.update_mask.paths.extend(field_mask_paths)
+
+  try:
+    response = ads_client.get_service("CampaignService").mutate_campaigns(
+        customer_id=customer_id, operations=[operation]
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  result = {
+      "resource_name": response.results[0].resource_name,
+      "bidding_strategy": bidding_strategy,
+  }
+  if target_cpa_micros:
+    result["target_cpa"] = round(target_cpa_micros / 1_000_000, 2)
+  if target_roas:
+    result["target_roas"] = target_roas
+
+  return result

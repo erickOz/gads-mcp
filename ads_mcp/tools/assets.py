@@ -831,3 +831,252 @@ def add_image_asset(
       "mime_type": mime_type_name,
       "file_size_kb": round(len(image_data) / 1024, 1),
   }
+
+
+PriceExtensionType = Literal[
+    "SERVICES", "PRODUCT_TIERS", "SERVICE_CATEGORIES", "SERVICE_TIERS",
+    "BRANDS", "EVENTS", "LOCATIONS", "NEIGHBORHOODS",
+    "PRODUCT_CATEGORIES",
+]
+
+PriceUnit = Literal[
+    "PER_HOUR", "PER_DAY", "PER_WEEK", "PER_MONTH",
+    "PER_YEAR", "PER_NIGHT", "UNSPECIFIED",
+]
+
+PriceQualifier = Literal["NONE", "FROM", "UP_TO"]
+
+
+@mcp.tool()
+def add_price_assets(
+    customer_id: str,
+    price_type: PriceExtensionType,
+    items: list[dict],
+    language_code: str = "es",
+    price_qualifier: PriceQualifier = "FROM",
+    level: Literal["ACCOUNT", "CAMPAIGN"] = "CAMPAIGN",
+    campaign_id: str | None = None,
+    login_customer_id: str | None = None,
+) -> dict:
+  """Creates Price assets (extensión de precios) showing products/services with prices.
+
+  Displays a price list below the ad — ideal for services, plans, or products
+  with defined pricing (e.g. ERP plans, consulting packages, courses).
+
+  Each item must include:
+  - header: title (max 25 chars)
+  - description: short detail (max 25 chars)
+  - price_amount: numeric price (e.g. 199.00)
+  - currency_code: ISO 4217 (e.g. "PEN", "USD", "MXN")
+  - final_url: landing page URL
+  - unit: optional — PER_MONTH, PER_HOUR, PER_DAY, etc. Defaults to UNSPECIFIED.
+
+  Minimum 3 items, maximum 8 items.
+
+  price_type options: SERVICES, PRODUCT_TIERS, SERVICE_CATEGORIES,
+  SERVICE_TIERS, BRANDS, EVENTS, LOCATIONS, NEIGHBORHOODS, PRODUCT_CATEGORIES.
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      price_type: Category type that best describes the items.
+      items: List of price item dicts (min 3, max 8).
+      language_code: BCP-47 language code (e.g. "es", "en", "es-419"). Defaults to "es".
+      price_qualifier: NONE, FROM, or UP_TO. Defaults to FROM.
+      level: ACCOUNT or CAMPAIGN. Defaults to CAMPAIGN.
+      campaign_id: Required when level=CAMPAIGN.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      Asset resource name and link resource name.
+  """
+  if level == "CAMPAIGN" and not campaign_id:
+    raise ToolError("campaign_id is required when level=CAMPAIGN.")
+  if len(items) < 3:
+    raise ToolError("At least 3 price items are required.")
+  if len(items) > 8:
+    raise ToolError("Maximum 8 price items allowed.")
+
+  for i, item in enumerate(items):
+    for field in ("header", "description", "price_amount", "currency_code", "final_url"):
+      if field not in item:
+        raise ToolError(f"Item {i}: '{field}' is required.")
+    if len(item["header"]) > 25:
+      raise ToolError(f"Item {i} header '{item['header']}' exceeds 25 characters.")
+    if len(item["description"]) > 25:
+      raise ToolError(f"Item {i} description '{item['description']}' exceeds 25 characters.")
+
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  asset = ads_client.get_type("Asset")
+  pa = asset.price_asset
+  pa.type_ = getattr(ads_client.enums.PriceExtensionTypeEnum, price_type)
+  pa.price_qualifier = getattr(ads_client.enums.PriceExtensionPriceQualifierEnum, price_qualifier)
+  pa.language_code = language_code
+
+  for item in items:
+    offer = ads_client.get_type("PriceOffer")
+    offer.header = item["header"]
+    offer.description = item["description"]
+    offer.price.amount_micros = int(item["price_amount"] * 1_000_000)
+    offer.price.currency_code = item["currency_code"]
+    offer.final_urls.append(item["final_url"])
+    unit = item.get("unit", "UNSPECIFIED")
+    offer.unit = getattr(ads_client.enums.PriceExtensionPriceUnitEnum, unit)
+    pa.price_offerings.append(offer)
+
+  op = ads_client.get_type("AssetOperation")
+  op.create = asset
+
+  try:
+    asset_response = ads_client.get_service("AssetService").mutate_assets(
+        customer_id=customer_id, operations=[op]
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  asset_resource_name = asset_response.results[0].resource_name
+  field_type = ads_client.enums.AssetFieldTypeEnum.PRICE
+  entity_id = campaign_id if level == "CAMPAIGN" else None
+
+  try:
+    link_resource_names = _link_assets(
+        ads_client, customer_id, [asset_resource_name], field_type, level, entity_id
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  return {
+      "asset_resource_name": asset_resource_name,
+      "link_resource_names": link_resource_names,
+      "level": level,
+      "items_count": len(items),
+      "price_type": price_type,
+  }
+
+
+PromotionOccasion = Literal[
+    "NONE", "NEW_YEARS", "VALENTINES_DAY", "EASTER", "MOTHERS_DAY",
+    "FATHERS_DAY", "LABOR_DAY", "BACK_TO_SCHOOL", "HALLOWEEN",
+    "BLACK_FRIDAY", "CYBER_MONDAY", "CHRISTMAS", "BOXING_DAY",
+    "INDEPENDENCE_DAY", "NATIONAL_DAY", "END_OF_SEASON",
+    "WINTER_SALE", "SUMMER_SALE", "FALL_SALE", "SPRING_SALE",
+    "RAMADAN", "EID_AL_FITR", "EID_AL_ADHA", "SINGLES_DAY",
+    "WOMENS_DAY", "HOLI", "PARENTS_DAY", "ST_NICHOLAS_DAY",
+    "CARNIVAL", "EPIPHANY", "ROSH_HASHANAH", "PASSOVER", "HANUKKAH",
+    "DIWALI",
+]
+
+
+@mcp.tool()
+def add_promotion_assets(
+    customer_id: str,
+    promotion_target: str,
+    final_url: str,
+    language_code: str = "es",
+    percent_off: float | None = None,
+    money_off_amount: float | None = None,
+    currency_code: str | None = None,
+    promotion_code: str | None = None,
+    occasion: PromotionOccasion = "NONE",
+    start_date: str | None = None,
+    end_date: str | None = None,
+    level: Literal["ACCOUNT", "CAMPAIGN"] = "CAMPAIGN",
+    campaign_id: str | None = None,
+    login_customer_id: str | None = None,
+) -> dict:
+  """Creates a Promotion asset (extensión de promoción) showing discounts or offers.
+
+  Displays a promotion tag below the ad — ideal for seasonal campaigns,
+  discount codes, or limited-time offers. Supports percent-off or money-off.
+
+  Provide exactly one of: percent_off OR (money_off_amount + currency_code).
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      promotion_target: Promotion description shown in the ad (e.g. "Descuento en ERP").
+      final_url: Landing page URL for the promotion.
+      language_code: BCP-47 language code (e.g. "es", "en"). Defaults to "es".
+      percent_off: Discount percentage (e.g. 20 for 20% off).
+      money_off_amount: Fixed discount amount (e.g. 50.00 for $50 off).
+      currency_code: Required with money_off_amount (e.g. "PEN", "USD").
+      promotion_code: Optional promo code (e.g. "CYBER2025").
+      occasion: Season/event (e.g. BLACK_FRIDAY, CHRISTMAS). Defaults to NONE.
+      start_date: Optional start date in YYYY-MM-DD format.
+      end_date: Optional end date in YYYY-MM-DD format.
+      level: ACCOUNT or CAMPAIGN. Defaults to CAMPAIGN.
+      campaign_id: Required when level=CAMPAIGN.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      Asset resource name and link resource name.
+  """
+  if level == "CAMPAIGN" and not campaign_id:
+    raise ToolError("campaign_id is required when level=CAMPAIGN.")
+  if percent_off is None and money_off_amount is None:
+    raise ToolError("Provide either percent_off or money_off_amount.")
+  if percent_off is not None and money_off_amount is not None:
+    raise ToolError("Provide either percent_off or money_off_amount, not both.")
+  if money_off_amount is not None and not currency_code:
+    raise ToolError("currency_code is required when using money_off_amount.")
+
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  asset = ads_client.get_type("Asset")
+  promo = asset.promotion_asset
+  promo.promotion_target = promotion_target
+  promo.final_urls.append(final_url)
+  promo.language_code = language_code
+
+  if percent_off is not None:
+    promo.percent_off = int(percent_off * 1_000_000)
+  else:
+    promo.money_amount_off.amount_micros = int(money_off_amount * 1_000_000)
+    promo.money_amount_off.currency_code = currency_code
+
+  if promotion_code:
+    promo.promotion_code = promotion_code
+  if occasion != "NONE":
+    promo.occasion = getattr(ads_client.enums.PromotionExtensionOccasionEnum, occasion)
+  if start_date:
+    promo.start_date = start_date
+  if end_date:
+    promo.end_date = end_date
+
+  op = ads_client.get_type("AssetOperation")
+  op.create = asset
+
+  try:
+    asset_response = ads_client.get_service("AssetService").mutate_assets(
+        customer_id=customer_id, operations=[op]
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  asset_resource_name = asset_response.results[0].resource_name
+  field_type = ads_client.enums.AssetFieldTypeEnum.PROMOTION
+  entity_id = campaign_id if level == "CAMPAIGN" else None
+
+  try:
+    link_resource_names = _link_assets(
+        ads_client, customer_id, [asset_resource_name], field_type, level, entity_id
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  result = {
+      "asset_resource_name": asset_resource_name,
+      "link_resource_names": link_resource_names,
+      "level": level,
+      "promotion_target": promotion_target,
+      "occasion": occasion,
+  }
+  if percent_off is not None:
+    result["percent_off"] = percent_off
+  else:
+    result["money_off_amount"] = money_off_amount
+    result["currency_code"] = currency_code
+  return result
