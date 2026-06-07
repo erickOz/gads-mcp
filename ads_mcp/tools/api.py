@@ -36,47 +36,68 @@ from ads_mcp.utils import ROOT_DIR
 _ADS_CLIENT: GoogleAdsClient | None = None
 
 
+def _get_developer_token() -> str:
+  """Returns developer token from env var or YAML file."""
+  token = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN")
+  if token:
+    return token
+  default_path = f"{ROOT_DIR}/google-ads.yaml"
+  credentials_path = os.environ.get("GOOGLE_ADS_CREDENTIALS", default_path)
+  if os.path.isfile(credentials_path):
+    with open(credentials_path, "r", encoding="utf-8") as f:
+      return yaml.safe_load(f.read()).get("developer_token", "")
+  raise FileNotFoundError(
+      "Developer token not found. Set GOOGLE_ADS_DEVELOPER_TOKEN env var "
+      "or provide a google-ads.yaml credentials file."
+  )
+
+
+def _load_static_ads_client() -> GoogleAdsClient:
+  """Loads a GoogleAdsClient from env vars or YAML file."""
+  if os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"):
+    # Production: all credentials passed as GOOGLE_ADS_* environment variables
+    client = GoogleAdsClient.load_from_env()
+  else:
+    default_path = f"{ROOT_DIR}/google-ads.yaml"
+    credentials_path = os.environ.get("GOOGLE_ADS_CREDENTIALS", default_path)
+    if not os.path.isfile(credentials_path):
+      raise FileNotFoundError(
+          "Google Ads credentials not found. Set GOOGLE_ADS_DEVELOPER_TOKEN "
+          "(plus GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, "
+          "GOOGLE_ADS_REFRESH_TOKEN) or provide a google-ads.yaml file at "
+          f"{credentials_path}."
+      )
+    client = GoogleAdsClient.load_from_storage(credentials_path)
+  client.use_proto_plus = True
+  return client
+
+
 def get_ads_client() -> GoogleAdsClient:
   """Gets a GoogleAdsClient instance.
 
-  Looks for an access token from the environment or loads credentials from
-  a YAML file.
+  When an OAuth access token is present in the request, builds a per-request
+  client using only the developer token from config. Otherwise returns a
+  cached static client loaded from env vars or YAML file.
 
   Returns:
       A GoogleAdsClient instance.
 
   Raises:
-      FileNotFoundError: If the credentials YAML file is not found.
+      FileNotFoundError: If credentials cannot be found.
   """
   global _ADS_CLIENT
 
   access_token = get_access_token()
   if access_token:
-    access_token = access_token.token
-
-  default_path = f"{ROOT_DIR}/google-ads.yaml"
-  credentials_path = os.environ.get("GOOGLE_ADS_CREDENTIALS", default_path)
-  if not os.path.isfile(credentials_path):
-    raise FileNotFoundError(
-        "Google Ads credentials YAML file is not found. "
-        "Check [GOOGLE_ADS_CREDENTIALS] config."
-    )
-
-  if access_token:
-    credentials = Credentials(access_token)
-    with open(credentials_path, "r", encoding="utf-8") as f:
-      ads_config = yaml.safe_load(f.read())
+    credentials = Credentials(access_token.token)
     return GoogleAdsClient(
         credentials,
-        developer_token=ads_config.get("developer_token"),
+        developer_token=_get_developer_token(),
         use_proto_plus=True,
     )
 
   if not _ADS_CLIENT:
-    _ADS_CLIENT = GoogleAdsClient.load_from_storage(credentials_path)
-    _ADS_CLIENT.use_proto_plus = (
-        True  # Forced enable proto plus to avoid attribute issues.
-    )
+    _ADS_CLIENT = _load_static_ads_client()
 
   return _ADS_CLIENT
 

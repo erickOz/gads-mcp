@@ -57,8 +57,12 @@ def main():
   """Initializes and runs the MCP server."""
   asyncio.run(update_views_yaml())  # Check and update docs resource
   api.get_ads_client()  # Check Google Ads credentials
+  # PORT is set automatically by Cloud Run; FASTMCP_PORT for manual override
+  port = int(os.getenv("PORT", os.getenv("FASTMCP_PORT", "8000")))
   mcp_server.run(
       transport="streamable-http",
+      host="0.0.0.0",
+      port=port,
       show_banner=False,
   )  # Initialize and run the server
 

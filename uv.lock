@@ -584,6 +584,7 @@ dependencies = [
     { name = "google-ads" },
     { name = "httpx", extra = ["http2"] },
     { name = "mcp" },
+    { name = "python-dotenv" },
     { name = "pyyaml" },
 ]
 
@@ -604,6 +605,7 @@ requires-dist = [
     { name = "google-ads", specifier = "==30.0.0" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
     { name = "mcp", specifier = ">=1.27.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
 ]
 

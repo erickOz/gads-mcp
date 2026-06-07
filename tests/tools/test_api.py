@@ -82,10 +82,12 @@ def test_format_value(mocker):
   assert api.format_value(123) == 123
 
 
+@mock.patch("ads_mcp.tools.api.os.path.isfile", return_value=True)
 @mock.patch("ads_mcp.tools.api.GoogleAdsClient")
-def test_list_accessible_accounts(mock_google_ads_client):
+def test_list_accessible_accounts(mock_google_ads_client, _mock_isfile):
   """Tests the list_accessible_accounts function."""
   mock_client_instance = mock_google_ads_client.load_from_storage.return_value
+  mock_client_instance.use_proto_plus = True
   mock_service = mock_client_instance.get_service.return_value
   mock_service.list_accessible_customers.return_value.resource_names = [
       "customers/123",
@@ -94,10 +96,12 @@ def test_list_accessible_accounts(mock_google_ads_client):
   assert api.list_accessible_accounts() == ["123", "456"]
 
 
+@mock.patch("ads_mcp.tools.api.os.path.isfile", return_value=True)
 @mock.patch("ads_mcp.tools.api.GoogleAdsClient")
-def test_execute_gaql(mock_google_ads_client):
+def test_execute_gaql(mock_google_ads_client, _mock_isfile):
   """Tests the execute_gaql function."""
   mock_client_instance = mock_google_ads_client.load_from_storage.return_value
+  mock_client_instance.use_proto_plus = True
   mock_ads_service = mock_client_instance.get_service.return_value
   mock_ads_service.search_stream.return_value = [
       mock.Mock(
