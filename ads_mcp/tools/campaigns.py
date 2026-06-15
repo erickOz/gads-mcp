@@ -104,7 +104,7 @@ def create_campaign(
   elif bidding_strategy == "TARGET_ROAS":
     campaign.target_roas.target_roas = target_roas
 
-  from google.ads.googleads.v23.enums.types.eu_political_advertising_status import EuPoliticalAdvertisingStatusEnum
+  from google.ads.googleads.v24.enums.types.eu_political_advertising_status import EuPoliticalAdvertisingStatusEnum
   campaign.contains_eu_political_advertising = (
       EuPoliticalAdvertisingStatusEnum.EuPoliticalAdvertisingStatus.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
   )
