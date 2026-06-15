@@ -1,0 +1,20 @@
+services:
+  mcp-server:
+    build: .
+    ports:
+      - "${MCP_PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      # Mount your local google-ads.yaml into the container (read-only)
+      # Override GOOGLE_ADS_CREDENTIALS_FILE to point to a different path
+      - ${GOOGLE_ADS_CREDENTIALS_FILE:-./google-ads.yaml}:/app/google-ads.yaml:ro
+    environment:
+      GOOGLE_ADS_CREDENTIALS: /app/google-ads.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

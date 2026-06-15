@@ -385,8 +385,8 @@ def create_responsive_search_ad(
   Maximum: 15 headlines and 4 descriptions.
   Each headline must be 30 characters or less.
   Each description must be 90 characters or less.
-  path1 and path2 are optional display URL paths (e.g. path1="erp", path2="farmacias"
-  results in uniflex.com.pe/erp/farmacias as display URL).
+  path1 and path2 are optional display URL paths (e.g. path1="software", path2="pricing"
+  results in example.com/software/pricing as display URL).
 
   Args:
       customer_id: The ID of the customer account (digits only).

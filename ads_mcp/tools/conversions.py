@@ -118,3 +118,151 @@ def create_conversion_action(
       "name": name,
       "category": category,
   }
+
+
+@mcp.tool()
+def upload_click_conversions(
+    customer_id: str,
+    conversions: list[dict],
+    partial_failure: bool = True,
+    login_customer_id: str | None = None,
+) -> dict:
+  """Uploads click conversions from CRM/offline data to Google Ads.
+
+  Use this to attribute offline sales back to ad clicks using the Google Click ID
+  (gclid) recorded when the user clicked your ad. Ideal for businesses that close
+  deals offline (calls, in-store, delayed checkout).
+
+  Each conversion dict must contain:
+    - gclid: Google Click ID recorded at click time
+    - conversion_action_id: ID of the conversion action to credit
+    - conversion_date_time: "yyyy-MM-dd HH:mm:ss+ZZ:ZZ" (e.g. "2024-01-15 14:30:00+00:00")
+    - conversion_value: monetary value of the conversion (float)
+    - currency_code: (optional) ISO 4217 code e.g. "USD". Defaults to account currency.
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      conversions: List of conversion dicts.
+      partial_failure: If True, valid conversions upload even if some fail. Defaults to True.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      successful_count, failed_count, and partial_failure_errors if any.
+  """
+  if not conversions:
+    raise ToolError("conversions list cannot be empty.")
+
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  service = ads_client.get_service("ConversionUploadService")
+  operations = []
+  for conv in conversions:
+    click_conv = ads_client.get_type("ClickConversion")
+    click_conv.gclid = conv["gclid"]
+    click_conv.conversion_action = (
+        f"customers/{customer_id}/conversionActions/{conv['conversion_action_id']}"
+    )
+    click_conv.conversion_date_time = conv["conversion_date_time"]
+    click_conv.conversion_value = float(conv.get("conversion_value", 0))
+    if "currency_code" in conv:
+      click_conv.currency_code = conv["currency_code"]
+    operations.append(click_conv)
+
+  try:
+    response = service.upload_click_conversions(
+        customer_id=customer_id,
+        conversions=operations,
+        partial_failure=partial_failure,
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  errors = []
+  if partial_failure and response.partial_failure_error.code != 0:
+    from google.ads.googleads.errors import GoogleAdsFailure  # noqa: PLC0415
+    failure = GoogleAdsFailure.deserialize(
+        response.partial_failure_error.details[0].value
+    )
+    errors = [str(err) for err in failure.errors]
+
+  successful = len([r for r in response.results if r.gclid])
+  return {
+      "successful_count": successful,
+      "failed_count": len(operations) - successful,
+      "partial_failure_errors": errors,
+  }
+
+
+@mcp.tool()
+def upload_call_conversions(
+    customer_id: str,
+    conversions: list[dict],
+    partial_failure: bool = True,
+    login_customer_id: str | None = None,
+) -> dict:
+  """Uploads call conversions from CRM/offline data to Google Ads.
+
+  Use this to attribute phone call outcomes (sales, appointments) to ad-driven calls.
+  Requires call extension or call-only ads with call reporting enabled.
+
+  Each conversion dict must contain:
+    - caller_id: E.164 phone number of the caller (e.g. "+14155551234")
+    - call_start_date_time: "yyyy-MM-dd HH:mm:ss+ZZ:ZZ"
+    - conversion_action_id: ID of the conversion action to credit
+    - conversion_date_time: "yyyy-MM-dd HH:mm:ss+ZZ:ZZ"
+    - conversion_value: monetary value of the conversion (float)
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      conversions: List of conversion dicts.
+      partial_failure: If True, valid conversions upload even if some fail. Defaults to True.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      successful_count, failed_count, and partial_failure_errors if any.
+  """
+  if not conversions:
+    raise ToolError("conversions list cannot be empty.")
+
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  service = ads_client.get_service("ConversionUploadService")
+  operations = []
+  for conv in conversions:
+    call_conv = ads_client.get_type("CallConversion")
+    call_conv.caller_id = conv["caller_id"]
+    call_conv.call_start_date_time = conv["call_start_date_time"]
+    call_conv.conversion_action = (
+        f"customers/{customer_id}/conversionActions/{conv['conversion_action_id']}"
+    )
+    call_conv.conversion_date_time = conv["conversion_date_time"]
+    call_conv.conversion_value = float(conv.get("conversion_value", 0))
+    operations.append(call_conv)
+
+  try:
+    response = service.upload_call_conversions(
+        customer_id=customer_id,
+        conversions=operations,
+        partial_failure=partial_failure,
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  errors = []
+  if partial_failure and response.partial_failure_error.code != 0:
+    from google.ads.googleads.errors import GoogleAdsFailure  # noqa: PLC0415
+    failure = GoogleAdsFailure.deserialize(
+        response.partial_failure_error.details[0].value
+    )
+    errors = [str(err) for err in failure.errors]
+
+  successful = len([r for r in response.results if r.caller_id])
+  return {
+      "successful_count": successful,
+      "failed_count": len(operations) - successful,
+      "partial_failure_errors": errors,
+  }

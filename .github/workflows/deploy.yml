@@ -1,0 +1,74 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/google-ads-mcp/server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for Workload Identity Federation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Authenticate to Google Cloud via Workload Identity Federation (keyless)
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+
+      # Credentials are stored as individual Cloud Run env vars (Option A)
+      # or as a Secret Manager secret mounted at /app/google-ads.yaml (Option B)
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: google-ads-mcp
+          region: ${{ vars.GCP_REGION }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+          env_vars: |
+            FASTMCP_SERVER_BASE_URL=https://${{ vars.CLOUD_RUN_SERVICE_URL }}
+          secrets: |
+            GOOGLE_ADS_DEVELOPER_TOKEN=GOOGLE_ADS_DEVELOPER_TOKEN:latest
+            GOOGLE_ADS_CLIENT_ID=GOOGLE_ADS_CLIENT_ID:latest
+            GOOGLE_ADS_CLIENT_SECRET=GOOGLE_ADS_CLIENT_SECRET:latest
+            GOOGLE_ADS_REFRESH_TOKEN=GOOGLE_ADS_REFRESH_TOKEN:latest
+            GOOGLE_ADS_LOGIN_CUSTOMER_ID=GOOGLE_ADS_LOGIN_CUSTOMER_ID:latest
+            FASTMCP_SERVER_AUTH_GOOGLE_CLIENT_ID=FASTMCP_SERVER_AUTH_GOOGLE_CLIENT_ID:latest
+            FASTMCP_SERVER_AUTH_GOOGLE_CLIENT_SECRET=FASTMCP_SERVER_AUTH_GOOGLE_CLIENT_SECRET:latest
+          flags: >-
+            --allow-unauthenticated
+            --port=8080
+            --min-instances=0
+            --max-instances=5
+            --memory=512Mi
+            --cpu=1
+
+      - name: Show service URL
+        run: |
+          echo "MCP server URL:"
+          gcloud run services describe google-ads-mcp \
+            --region=${{ vars.GCP_REGION }} \
+            --format='value(status.url)'

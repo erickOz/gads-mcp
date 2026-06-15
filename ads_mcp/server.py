@@ -21,14 +21,18 @@ from ads_mcp.scripts.generate_views import update_views_yaml
 from ads_mcp.tools import api
 from ads_mcp.tools import assets
 from ads_mcp.tools import audiences
+from ads_mcp.tools import budgets
 from ads_mcp.tools import campaigns
 from ads_mcp.tools import conversions
+from ads_mcp.tools import customer_match
 from ads_mcp.tools import docs
+from ads_mcp.tools import keyword_planner
 from ads_mcp.tools import labels
 from ads_mcp.tools import mutate
 from ads_mcp.tools import pmax
 from ads_mcp.tools import recommendations
 from ads_mcp.tools import reporting
+from ads_mcp.tools import targeting
 
 import dotenv
 from fastmcp.server.auth.providers.google import GoogleProvider
@@ -38,7 +42,9 @@ from fastmcp.server.auth.providers.google import GoogleTokenVerifier
 dotenv.load_dotenv()
 
 
-tools = [api, assets, audiences, campaigns, conversions, docs, labels, mutate, pmax, recommendations, reporting]
+tools = [api, assets, audiences, budgets, campaigns, conversions, customer_match,
+         docs, keyword_planner, labels, mutate, pmax, recommendations, reporting,
+         targeting]
 
 if os.getenv("USE_GOOGLE_OAUTH_ACCESS_TOKEN"):
   mcp_server.auth = GoogleTokenVerifier()
@@ -57,8 +63,12 @@ def main():
   """Initializes and runs the MCP server."""
   asyncio.run(update_views_yaml())  # Check and update docs resource
   api.get_ads_client()  # Check Google Ads credentials
+  # PORT is set automatically by Cloud Run; FASTMCP_PORT for manual override
+  port = int(os.getenv("PORT", os.getenv("FASTMCP_PORT", "8000")))
   mcp_server.run(
       transport="streamable-http",
+      host="0.0.0.0",
+      port=port,
       show_banner=False,
   )  # Initialize and run the server
 
