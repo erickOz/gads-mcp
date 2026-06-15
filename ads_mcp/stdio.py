@@ -20,19 +20,27 @@ from ads_mcp.scripts.generate_views import update_views_yaml
 from ads_mcp.tools import api
 from ads_mcp.tools import assets
 from ads_mcp.tools import audiences
+from ads_mcp.tools import budgets
 from ads_mcp.tools import campaigns
 from ads_mcp.tools import conversions
+from ads_mcp.tools import customer_match
 from ads_mcp.tools import docs
+from ads_mcp.tools import keyword_planner
+from ads_mcp.tools import labels
 from ads_mcp.tools import mutate
+from ads_mcp.tools import pmax
 from ads_mcp.tools import recommendations
 from ads_mcp.tools import reporting
+from ads_mcp.tools import targeting
 
 import dotenv
 
 dotenv.load_dotenv()
 
 
-tools = [api, assets, audiences, campaigns, conversions, docs, mutate, recommendations, reporting]
+tools = [api, assets, audiences, budgets, campaigns, conversions, customer_match,
+         docs, keyword_planner, labels, mutate, pmax, recommendations, reporting,
+         targeting]
 
 
 def main():
@@ -42,7 +50,7 @@ def main():
   mcp_server.run(
       transport="stdio",
       show_banner=False,
-  )  # Initialize and run the server
+  )
 
 
 if __name__ == "__main__":
