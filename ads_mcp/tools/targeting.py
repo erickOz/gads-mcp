@@ -533,3 +533,163 @@ def list_ad_group_demographics(
   ]
 
   return {"age_gender": age_gender, "devices": devices}
+
+
+DayOfWeek = Literal[
+    "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"
+]
+
+MinuteOfHour = Literal["ZERO", "FIFTEEN", "THIRTY", "FORTY_FIVE"]
+
+
+@mcp.tool()
+def set_ad_schedule(
+    customer_id: str,
+    campaign_id: str,
+    schedules: list[dict],
+    login_customer_id: str | None = None,
+) -> dict[str, Any]:
+  """Sets ad schedule bid modifiers for a campaign (time-of-day targeting).
+
+  Replaces existing ad schedules for the campaign. Each schedule block defines
+  a day/time range and a bid multiplier. Use this to increase bids during
+  peak hours and reduce them (or exclude) off-peak periods.
+
+  Each schedule dict must contain:
+    - day_of_week: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY
+    - start_hour: 0–23
+    - start_minute: ZERO, FIFTEEN, THIRTY, or FORTY_FIVE
+    - end_hour: 1–24 (24 means midnight, end of day)
+    - end_minute: ZERO, FIFTEEN, THIRTY, or FORTY_FIVE
+    - bid_modifier: float multiplier (1.2 = +20%, 0.8 = -20%)
+
+  Note: Total schedule blocks cannot overlap and must cover valid time ranges.
+  Google requires exactly 0–6 blocks per day. Call with empty schedules list
+  to remove all ad schedule targeting from the campaign.
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      campaign_id: The campaign to configure.
+      schedules: List of schedule dicts as described above.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      created_count of new schedule criteria.
+  """
+  ads_client = get_ads_client()
+  if login_customer_id:
+    ads_client.login_customer_id = login_customer_id
+
+  service = ads_client.get_service("CampaignCriterionService")
+
+  # Remove existing ad schedule criteria first
+  existing_query = f"""
+    SELECT campaign_criterion.resource_name
+    FROM campaign_criterion
+    WHERE campaign.id = {campaign_id}
+      AND campaign_criterion.type = AD_SCHEDULE
+  """
+  existing = execute_gaql(query=existing_query, customer_id=customer_id,
+                          login_customer_id=login_customer_id)
+
+  remove_ops = []
+  for row in existing["data"]:
+    op = ads_client.get_type("CampaignCriterionOperation")
+    op.remove = row["campaign_criterion.resource_name"]
+    remove_ops.append(op)
+
+  if remove_ops:
+    try:
+      service.mutate_campaign_criteria(
+          customer_id=customer_id, operations=remove_ops
+      )
+    except GoogleAdsException as e:
+      raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  if not schedules:
+    return {"created_count": 0, "removed_count": len(remove_ops)}
+
+  create_ops = []
+  for sched in schedules:
+    criterion = ads_client.get_type("CampaignCriterion")
+    criterion.campaign = f"customers/{customer_id}/campaigns/{campaign_id}"
+    criterion.bid_modifier = float(sched.get("bid_modifier", 1.0))
+    criterion.ad_schedule.day_of_week = getattr(
+        ads_client.enums.DayOfWeekEnum, sched["day_of_week"]
+    )
+    criterion.ad_schedule.start_hour = int(sched["start_hour"])
+    criterion.ad_schedule.start_minute = getattr(
+        ads_client.enums.MinuteOfHourEnum, sched.get("start_minute", "ZERO")
+    )
+    criterion.ad_schedule.end_hour = int(sched["end_hour"])
+    criterion.ad_schedule.end_minute = getattr(
+        ads_client.enums.MinuteOfHourEnum, sched.get("end_minute", "ZERO")
+    )
+    op = ads_client.get_type("CampaignCriterionOperation")
+    op.create = criterion
+    create_ops.append(op)
+
+  try:
+    response = service.mutate_campaign_criteria(
+        customer_id=customer_id, operations=create_ops
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
+
+  return {
+      "created_count": len(response.results),
+      "removed_count": len(remove_ops),
+      "campaign_id": campaign_id,
+  }
+
+
+@mcp.tool()
+def list_ad_schedules(
+    customer_id: str,
+    campaign_id: str,
+    login_customer_id: str | None = None,
+) -> dict[str, Any]:
+  """Lists the current ad schedule bid modifiers for a campaign.
+
+  Args:
+      customer_id: The ID of the customer account (digits only).
+      campaign_id: The campaign to inspect.
+      login_customer_id: Optional MCC account ID.
+
+  Returns:
+      List of schedule blocks with day, hours, and bid_modifier.
+  """
+  query = f"""
+    SELECT
+      campaign_criterion.criterion_id,
+      campaign_criterion.bid_modifier,
+      campaign_criterion.ad_schedule.day_of_week,
+      campaign_criterion.ad_schedule.start_hour,
+      campaign_criterion.ad_schedule.start_minute,
+      campaign_criterion.ad_schedule.end_hour,
+      campaign_criterion.ad_schedule.end_minute,
+      campaign_criterion.resource_name
+    FROM campaign_criterion
+    WHERE campaign.id = {campaign_id}
+      AND campaign_criterion.type = AD_SCHEDULE
+    ORDER BY campaign_criterion.ad_schedule.day_of_week,
+             campaign_criterion.ad_schedule.start_hour
+  """
+  result = execute_gaql(query=query, customer_id=customer_id,
+                        login_customer_id=login_customer_id)
+
+  schedules = [
+      {
+          "criterion_id": row.get("campaign_criterion.criterion_id"),
+          "day_of_week": row.get("campaign_criterion.ad_schedule.day_of_week"),
+          "start_hour": row.get("campaign_criterion.ad_schedule.start_hour"),
+          "start_minute": row.get("campaign_criterion.ad_schedule.start_minute"),
+          "end_hour": row.get("campaign_criterion.ad_schedule.end_hour"),
+          "end_minute": row.get("campaign_criterion.ad_schedule.end_minute"),
+          "bid_modifier": row.get("campaign_criterion.bid_modifier"),
+          "resource_name": row.get("campaign_criterion.resource_name"),
+      }
+      for row in result["data"]
+  ]
+
+  return {"schedules": schedules, "campaign_id": campaign_id}

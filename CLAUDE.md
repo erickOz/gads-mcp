@@ -91,7 +91,7 @@ If you have a remote deployment and want to use it from Claude Desktop:
 
 ---
 
-## Available Tools (62 total)
+## Available Tools (69 total)
 
 ### Reporting & Insights
 | Tool | What it does |
@@ -198,6 +198,25 @@ If you have a remote deployment and want to use it from Claude Desktop:
 | `set_gender_bid_modifier` | Set bid modifier for a gender in an ad group |
 | `set_device_bid_modifier` | Set bid modifier for a device type at campaign level |
 | `list_ad_group_demographics` | List current age/gender/device bid modifiers |
+
+### Ad Scheduling
+| Tool | What it does |
+|------|-------------|
+| `set_ad_schedule` | Set time-of-day/day-of-week bid modifiers for a campaign |
+| `list_ad_schedules` | List current ad schedule bid adjustments for a campaign |
+
+### Keyword Planner
+| Tool | What it does |
+|------|-------------|
+| `generate_keyword_ideas` | Get keyword suggestions with search volume, competition, CPC estimates |
+| `get_keyword_forecast` | Forecast clicks, impressions, and cost for a keyword set at a given budget |
+
+### Shared Budgets
+| Tool | What it does |
+|------|-------------|
+| `create_shared_budget` | Create a portfolio budget shared across multiple campaigns |
+| `list_shared_budgets` | List all shared budgets and how many campaigns use each |
+| `assign_campaign_budget` | Assign a shared budget to a campaign |
 
 ### Account
 | Tool | What it does |

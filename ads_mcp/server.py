@@ -21,10 +21,12 @@ from ads_mcp.scripts.generate_views import update_views_yaml
 from ads_mcp.tools import api
 from ads_mcp.tools import assets
 from ads_mcp.tools import audiences
+from ads_mcp.tools import budgets
 from ads_mcp.tools import campaigns
 from ads_mcp.tools import conversions
 from ads_mcp.tools import customer_match
 from ads_mcp.tools import docs
+from ads_mcp.tools import keyword_planner
 from ads_mcp.tools import labels
 from ads_mcp.tools import mutate
 from ads_mcp.tools import pmax
@@ -40,8 +42,9 @@ from fastmcp.server.auth.providers.google import GoogleTokenVerifier
 dotenv.load_dotenv()
 
 
-tools = [api, assets, audiences, campaigns, conversions, customer_match, docs,
-         labels, mutate, pmax, recommendations, reporting, targeting]
+tools = [api, assets, audiences, budgets, campaigns, conversions, customer_match,
+         docs, keyword_planner, labels, mutate, pmax, recommendations, reporting,
+         targeting]
 
 if os.getenv("USE_GOOGLE_OAUTH_ACCESS_TOKEN"):
   mcp_server.auth = GoogleTokenVerifier()
