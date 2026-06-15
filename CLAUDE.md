@@ -91,7 +91,7 @@ If you have a remote deployment and want to use it from Claude Desktop:
 
 ---
 
-## Available Tools (49 total)
+## Available Tools (62 total)
 
 ### Reporting & Insights
 | Tool | What it does |
@@ -173,6 +173,31 @@ If you have a remote deployment and want to use it from Claude Desktop:
 |------|-------------|
 | `create_conversion_action` | Create a new conversion tracking action |
 | `list_conversion_actions` | List all conversion actions and their settings |
+| `upload_click_conversions` | Upload offline click conversions from CRM using GCLIDs |
+| `upload_call_conversions` | Upload offline call conversions from CRM using caller phone numbers |
+
+### Customer Match
+| Tool | What it does |
+|------|-------------|
+| `create_customer_match_list` | Create an empty Customer Match audience list for CRM-based targeting |
+| `upload_customer_match_members` | Upload hashed emails/phones/addresses to a Customer Match list |
+| `get_customer_match_job_status` | Check upload job status (PENDING/RUNNING/SUCCESS/FAILED) |
+
+### Geographic Targeting
+| Tool | What it does |
+|------|-------------|
+| `search_geo_targets` | Search for geographic targets by name (countries, cities, regions) |
+| `add_location_targets` | Add location targeting (or exclusions) to a campaign |
+| `list_campaign_locations` | List current location targets for a campaign |
+| `remove_campaign_criteria` | Remove campaign-level targeting criteria by resource name |
+
+### Demographic Targeting
+| Tool | What it does |
+|------|-------------|
+| `set_age_range_bid_modifier` | Set bid modifier for an age range in an ad group |
+| `set_gender_bid_modifier` | Set bid modifier for a gender in an ad group |
+| `set_device_bid_modifier` | Set bid modifier for a device type at campaign level |
+| `list_ad_group_demographics` | List current age/gender/device bid modifiers |
 
 ### Account
 | Tool | What it does |
