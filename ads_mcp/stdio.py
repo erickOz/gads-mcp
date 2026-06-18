@@ -41,10 +41,26 @@ import dotenv
 dotenv.load_dotenv()
 
 
-tools = [api, assets, audiences, bidding_strategies, budgets, campaigns,
-         change_history, conversions, customer_match, docs, experiments,
-         keyword_planner, labels, mutate, pmax, recommendations, reporting,
-         targeting]
+tools = [
+    api,
+    assets,
+    audiences,
+    bidding_strategies,
+    budgets,
+    campaigns,
+    change_history,
+    conversions,
+    customer_match,
+    docs,
+    experiments,
+    keyword_planner,
+    labels,
+    mutate,
+    pmax,
+    recommendations,
+    reporting,
+    targeting,
+]
 
 
 def main():
@@ -54,7 +70,7 @@ def main():
   mcp_server.run(
       transport="stdio",
       show_banner=False,
-  )
+  )  # Initialize and run the server
 
 
 if __name__ == "__main__":
