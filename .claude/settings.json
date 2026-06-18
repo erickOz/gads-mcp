@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python --version)",
+      "Bash(GOOGLE_ADS_CREDENTIALS=\"/Users/erickoz/.config/google-ads.yaml\" .venv/bin/python -c \"import ads_mcp.stdio\")",
+      "Bash(GOOGLE_ADS_CREDENTIALS=\"/Users/erickoz/.config/google-ads.yaml\" timeout 25 .venv/bin/python -m ads_mcp.stdio)",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(GOOGLE_ADS_CREDENTIALS=\"/Users/erickoz/.config/google-ads.yaml\" .venv/bin/python -m ads_mcp.stdio)",
+      "Bash(pkill -f \"ads_mcp.stdio\")",
+      "Bash(.venv/bin/python /tmp/mcp_probe.py)",
+      "Bash(echo \"=== PROBE EXIT: $? ===\")",
+      "Bash(.venv/bin/python /tmp/probe_startup.py)",
+      "Bash(.venv/bin/python -c \"import yaml; v=yaml.safe_load\\(open\\('ads_mcp/context/views.yaml'\\)\\); print\\(len\\(v\\), 'vistas → eso son', len\\(v\\), 'requests HTTP a appspot.com en cada arranque'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} en %{time_total}s\\\\n\" --max-time 15 \"https://gaql-query-builder.uc.r.appspot.com/schemas/v24/campaign.json\")",
+      "Bash(pkill -f \"update_views_yaml\")",
+      "Bash(awk '{print $5\" bytes, mod \"$6\" \"$7}')",
+      "Bash(xargs -n1 basename)",
+      "Bash(.venv/bin/python -m py_compile ads_mcp/stdio.py)"
+    ],
+    "additionalDirectories": [
+      "/Users/erickoz/.claude",
+      "/Users/erickoz/Library/Application Support/Claude"
+    ]
+  }
+}
