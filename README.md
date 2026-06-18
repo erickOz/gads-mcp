@@ -18,7 +18,7 @@ Talk to your Google Ads account like you would to a colleague:
 "Apply Google's budget recommendations automatically"
 ```
 
-**49 tools** covering the full Google Ads API lifecycle:
+**78 tools** covering the full Google Ads API lifecycle:
 
 | Category | Tools |
 |----------|-------|
@@ -28,9 +28,18 @@ Talk to your Google Ads account like you would to a colleague:
 | Keywords | Add, update bids, pause, negatives (ad group & campaign level) |
 | Assets & extensions | Sitelinks, callouts, call, promotion, price, lead form, images |
 | Audiences | Create rule-based lists, apply to ad groups with bid modifiers |
+| Customer Match | Create CRM audiences from hashed emails, phones, and addresses |
 | Recommendations | List and auto-apply Google's optimization suggestions |
-| Conversions | Create and audit conversion actions |
+| Conversions | Create conversion actions, upload offline click/call conversions from CRM |
 | Labels | Create, apply, list labels across campaigns and ad groups |
+| Geographic targeting | Search geo targets, add/list/remove location targets per campaign |
+| Demographic targeting | Age range, gender, and device bid modifiers |
+| Ad scheduling | Time-of-day and day-of-week bid modifiers per campaign |
+| Keyword Planner | Keyword ideas with search volume + traffic forecasts at a given budget |
+| Shared budgets | Create portfolio budgets and assign campaigns to them |
+| Portfolio bidding | Create and assign shared automated bidding strategies (Target CPA, ROAS) |
+| A/B experiments | Create, schedule, promote, or end campaign experiments |
+| Change history | Audit log of who changed what and when (last 30 days) |
 | Raw queries | Execute any GAQL query with built-in schema reference |
 | Account | List accessible accounts (MCC support) |
 

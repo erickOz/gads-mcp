@@ -91,7 +91,7 @@ If you have a remote deployment and want to use it from Claude Desktop:
 
 ---
 
-## Available Tools (69 total)
+## Available Tools (78 total)
 
 ### Reporting & Insights
 | Tool | What it does |
@@ -217,6 +217,27 @@ If you have a remote deployment and want to use it from Claude Desktop:
 | `create_shared_budget` | Create a portfolio budget shared across multiple campaigns |
 | `list_shared_budgets` | List all shared budgets and how many campaigns use each |
 | `assign_campaign_budget` | Assign a shared budget to a campaign |
+
+### Portfolio Bidding Strategies
+| Tool | What it does |
+|------|-------------|
+| `create_portfolio_bidding_strategy` | Create a shared automated bidding strategy (Target CPA, Target ROAS, etc.) |
+| `list_portfolio_bidding_strategies` | List all portfolio strategies with campaign counts |
+| `assign_portfolio_strategy` | Assign a portfolio bidding strategy to a campaign |
+
+### Campaign Experiments (A/B Testing)
+| Tool | What it does |
+|------|-------------|
+| `create_experiment` | Create an A/B experiment splitting traffic between control and treatment |
+| `list_experiments` | List all experiments with status (SETUP, INITIATED, ENABLED, etc.) |
+| `schedule_experiment` | Start a SETUP experiment (begins traffic splitting) |
+| `promote_experiment` | Promote the treatment arm, applying its settings to the original campaign |
+| `end_experiment` | End an experiment without promoting, returning all traffic to original |
+
+### Change History
+| Tool | What it does |
+|------|-------------|
+| `get_change_history` | Audit log of who changed what and when (last 30 days) |
 
 ### Account
 | Tool | What it does |
