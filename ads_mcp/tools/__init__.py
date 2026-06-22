@@ -12,12 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import api
-from . import assets
-from . import audiences
-from . import campaigns
-from . import conversions
-from . import docs
-from . import mutate
-from . import recommendations
-from . import reporting
+# Tool modules are not eagerly imported here. Registration is controlled by
+# `ads_mcp.config.register_enabled_tools`, which imports only the namespaces
+# enabled in `tools_config.yaml` so each module's `@mcp.tool()` decorators run
+# on demand.

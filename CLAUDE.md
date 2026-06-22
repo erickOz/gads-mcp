@@ -91,6 +91,24 @@ If you have a remote deployment and want to use it from Claude Desktop:
 
 ---
 
+## Limiting exposed tools (`tools_config.yaml`)
+
+All 78 tools register by default. To expose only a subset (e.g. a read-only
+reporting profile, or to disable write access), toggle namespaces in
+`ads_mcp/tools_config.yaml`. Each namespace = one tool module; `execute_gaql`,
+`list_accessible_accounts` and the docs tools are always enabled (core).
+
+```yaml
+# Read-only: just reporting + core/docs tools
+namespaces:
+  reporting: true
+```
+
+Config resolution: `$GOOGLE_ADS_MCP_TOOLS_CONFIG` → `./tools_config.yaml` →
+bundled default. Omitting `namespaces:` enables everything. See `ads_mcp/config.py`.
+
+---
+
 ## Available Tools (78 total)
 
 ### Reporting & Insights

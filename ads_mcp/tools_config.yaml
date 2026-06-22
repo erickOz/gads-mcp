@@ -1,0 +1,46 @@
+# tools_config.yaml
+#
+# Controls which tool namespaces this MCP server exposes.
+# Set a namespace to `false` to stop registering its tools — useful to keep the
+# model's tool list focused (e.g. reporting-only) or to lock down write access.
+#
+# Resolution order (see ads_mcp/config.py):
+#   1. $GOOGLE_ADS_MCP_TOOLS_CONFIG  (explicit path)
+#   2. ./tools_config.yaml           (current working directory)
+#   3. this bundled default
+#
+# The `api` (execute_gaql, list_accessible_accounts) and `docs` tools are core
+# and always enabled — they are not listed here.
+#
+# Omitting the `namespaces:` block entirely enables everything (78 tools).
+
+namespaces:
+  # Reporting & insights (read-only)
+  reporting: true          # campaign/keyword/search-term/auction/ad/quality reports
+
+  # Campaign management (write)
+  campaigns: true          # create/update campaigns, Performance Max
+  mutate: true             # ad groups, ads, keywords, negatives
+  pmax: true               # Performance Max asset groups
+
+  # Targeting & audiences (write)
+  targeting: true          # geo, demographics, ad scheduling
+  audiences: true          # rule-based audiences
+  customer_match: true     # CRM-based Customer Match lists
+
+  # Bidding & budgets (write)
+  bidding_strategies: true # portfolio bidding strategies
+  budgets: true            # shared/portfolio budgets
+
+  # Assets, labels, recommendations
+  assets: true             # sitelinks, callouts, images, lead forms, etc.
+  labels: true             # labels for organizing entities
+  recommendations: true    # Google's optimization recommendations
+
+  # Conversions
+  conversions: true        # conversion actions + offline upload
+
+  # Testing & auditing
+  experiments: true        # A/B campaign experiments
+  change_history: true     # change/audit log
+  keyword_planner: true    # keyword ideas & forecasts

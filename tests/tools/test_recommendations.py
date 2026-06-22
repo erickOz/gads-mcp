@@ -10,18 +10,18 @@ def mock_ads_client(mocker):
 
 def test_list_recommendations(mocker):
     mock_execute_gaql = mocker.patch("ads_mcp.tools.recommendations.execute_gaql")
+    # execute_gaql returns flat, dotted keys; recommendation.impact stays a
+    # nested object whose metrics use camelCase keys (baseMetrics/metrics).
     mock_execute_gaql.return_value = {
         "data": [
             {
-                "recommendation": {
-                    "resource_name": "customers/123/recommendations/456",
-                    "type": "KEYWORD",
-                    "campaign": "customers/123/campaigns/789",
-                    "impact": {
-                        "base_metrics": {"impressions": 1000.0},
-                        "metrics": {"impressions": 1200.0}
-                    }
-                }
+                "recommendation.resource_name": "customers/123/recommendations/456",
+                "recommendation.type": "KEYWORD",
+                "recommendation.campaign": "customers/123/campaigns/789",
+                "recommendation.impact": {
+                    "baseMetrics": {"impressions": 1000.0},
+                    "metrics": {"impressions": 1200.0},
+                },
             }
         ]
     }
@@ -34,7 +34,8 @@ def test_list_recommendations(mocker):
     rec = result["recommendations"][0]
     assert rec["resource_name"] == "customers/123/recommendations/456"
     assert rec["type"] == "KEYWORD"
-    assert rec["impact_absolute"] == 1200.0
+    assert rec["base_impressions"] == 1000.0
+    assert rec["projected_impressions"] == 1200.0
 
 def test_apply_recommendation(mocker):
     mock_client = MagicMock()
@@ -50,5 +51,5 @@ def test_apply_recommendation(mocker):
 
     mock_client.get_service.assert_called_with("RecommendationService")
     mock_service.apply_recommendation.assert_called_once()
-    assert "applied_recommendation_resource_name" in result
-    assert result["applied_recommendation_resource_name"] == mock_result.resource_name
+    assert "applied_resource_name" in result
+    assert result["applied_resource_name"] == mock_result.resource_name

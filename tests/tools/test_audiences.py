@@ -10,17 +10,16 @@ def mock_ads_client(mocker):
 
 def test_list_audiences(mocker):
     mock_execute_gaql = mocker.patch("ads_mcp.tools.audiences.execute_gaql")
+    # execute_gaql returns flat, dotted keys (from field_mask.paths).
     mock_execute_gaql.return_value = {
         "data": [
             {
-                "user_list": {
-                    "resource_name": "customers/123/userLists/456",
-                    "id": "456",
-                    "name": "All Visitors 30 Days",
-                    "type": "REMARKETING",
-                    "membership_status": "OPEN",
-                    "size_for_search": 10000
-                }
+                "user_list.resource_name": "customers/123/userLists/456",
+                "user_list.id": "456",
+                "user_list.name": "All Visitors 30 Days",
+                "user_list.type": "REMARKETING",
+                "user_list.membership_status": "OPEN",
+                "user_list.size_for_search": 10000,
             }
         ]
     }
@@ -46,14 +45,14 @@ def test_create_audience(mocker):
 
     name = "Test Audience"
     description = "A test audience for website visitors"
-    rule_items = [{"url_contains": "/test"}]
+    url_contains_values = ["/test"]
     membership_lifespan_days = 60
 
     result = create_audience(
         customer_id="123",
         name=name,
         description=description,
-        rule_items=rule_items,
+        url_contains_values=url_contains_values,
         membership_lifespan_days=membership_lifespan_days,
     )
 

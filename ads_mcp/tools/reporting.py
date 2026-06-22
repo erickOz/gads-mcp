@@ -1,6 +1,6 @@
 """Reporting tools for the Google Ads API."""
 
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 from fastmcp.exceptions import ToolError
 
@@ -17,6 +17,22 @@ DateRange = Literal[
     "THIS_MONTH",
     "LAST_MONTH",
 ]
+
+# Single source of truth for valid ranges, derived from the Literal above.
+DATE_RANGES = frozenset(get_args(DateRange))
+
+
+def _validate_date_range(date_range: str) -> None:
+  """Guards GAQL interpolation against invalid/unsafe date_range values.
+
+  The DateRange Literal is only enforced by FastMCP at the tool boundary;
+  direct/programmatic calls reach the f-string GAQL injection unchecked.
+  """
+  if date_range not in DATE_RANGES:
+    raise ToolError(
+        f"Invalid date_range '{date_range}'. Must be one of: "
+        f"{', '.join(sorted(DATE_RANGES))}."
+    )
 
 
 @mcp.tool()
@@ -42,6 +58,8 @@ def get_campaign_performance(
   Returns:
       A list of campaign performance rows sorted by impressions descending.
   """
+  _validate_date_range(date_range)
+
   gaql_query = f"""
     SELECT
       campaign.id,
@@ -124,6 +142,8 @@ def get_search_terms_report(
       List of search terms with impressions, clicks, cost, conversions, CTR,
       avg CPC, and match status (ADDED, EXCLUDED, NONE).
   """
+  _validate_date_range(date_range)
+
   gaql = f"""
     SELECT
       search_term_view.search_term,
@@ -208,6 +228,8 @@ def get_keyword_performance(
       current bid, impressions, clicks, cost, conversions, CTR, avg CPC,
       and impression share metrics.
   """
+  _validate_date_range(date_range)
+
   gaql = f"""
     SELECT
       ad_group_criterion.criterion_id,
@@ -311,6 +333,8 @@ def get_ad_performance(
       List of ads with ad_id, type, status, ad_strength, approval status,
       impressions, clicks, cost, conversions, CTR, and avg CPC.
   """
+  _validate_date_range(date_range)
+
   gaql = f"""
     SELECT
       ad_group_ad.ad.id,
@@ -553,6 +577,8 @@ def get_auction_insights(
   Returns:
       List of competitor domains with auction insight metrics per campaign.
   """
+  _validate_date_range(date_range)
+
   gaql = f"""
     SELECT
       campaign.id,

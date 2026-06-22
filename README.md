@@ -153,6 +153,36 @@ for restricting access to specific Google accounts.
 
 ---
 
+## Limit which tools are exposed (`tools_config.yaml`)
+
+All 78 tools are enabled by default. You can narrow the surface — to keep the model's
+tool list focused or to lock down write access — by toggling **namespaces** in
+[`ads_mcp/tools_config.yaml`](ads_mcp/tools_config.yaml). Each namespace maps to one tool
+module (`reporting`, `campaigns`, `mutate`, `targeting`, `conversions`, …). The core
+`execute_gaql` / `list_accessible_accounts` and the documentation tools are always on.
+
+```yaml
+# Read-only profile: reporting + the always-on core/docs tools (12 tools total)
+namespaces:
+  reporting: true
+  # everything else omitted -> disabled
+```
+
+Resolution order (first match wins):
+
+1. `$GOOGLE_ADS_MCP_TOOLS_CONFIG` — explicit path to a config file
+2. `./tools_config.yaml` — a file in the current working directory
+3. the bundled default (all namespaces enabled)
+
+Omitting the `namespaces:` block entirely enables everything. Example — point a
+read-only deployment at a custom config:
+
+```bash
+export GOOGLE_ADS_MCP_TOOLS_CONFIG=/path/to/reporting-only.yaml
+```
+
+---
+
 ## Disclaimer
 
 Copyright Google LLC. Supported by Google LLC and/or its affiliate(s). This solution, including any related sample code or data, is made available on an "as is," "as available," and "with all faults" basis, solely for illustrative purposes, and without warranty or representation of any kind. This solution is experimental, unsupported and provided solely for your convenience. Your use of it is subject to your agreements with Google, as applicable, and may constitute a beta feature as defined under those agreements. To the extent that you make any data available to Google in connection with your use of the solution, you represent and warrant that you have all necessary and appropriate rights, consents and permissions to permit Google to use and process that data. By using any portion of this solution, you acknowledge, assume and accept all risks, known and unknown, associated with its usage and any processing of data by Google, including with respect to your deployment of any portion of this solution in your systems, or usage in connection with your business, if at all. With respect to the entrustment of personal information to Google, you will verify that the established system is sufficient by checking Google's privacy policy and other public information, and you agree that no further information will be provided by Google.
