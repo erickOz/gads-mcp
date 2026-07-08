@@ -8,6 +8,7 @@ from google.ads.googleads.errors import GoogleAdsException
 
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import execute_gaql, get_ads_client
+from ads_mcp.tools.validation import validate_resource_name
 
 
 def _sha256(value: str) -> str:
@@ -201,6 +202,7 @@ def get_customer_match_job_status(
   Returns:
       status (PENDING, RUNNING, SUCCESS, FAILED), and failure_reason if any.
   """
+  validate_resource_name(job_resource_name, "job_resource_name")
   query = f"""
     SELECT
       offline_user_data_job.resource_name,

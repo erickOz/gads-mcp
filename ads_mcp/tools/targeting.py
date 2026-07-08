@@ -7,6 +7,7 @@ from google.ads.googleads.errors import GoogleAdsException
 
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import execute_gaql, get_ads_client
+from ads_mcp.tools.validation import validate_numeric_id
 
 
 AgeRange = Literal[
@@ -158,7 +159,7 @@ def list_campaign_locations(
       geo_target_constant.target_type,
       geo_target_constant.canonical_name
     FROM campaign_criterion
-    WHERE campaign.id = {campaign_id}
+    WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND campaign_criterion.type = LOCATION
   """
   result = execute_gaql(
@@ -263,7 +264,7 @@ def set_age_range_bid_modifier(
       ad_group_criterion.criterion_id,
       ad_group_criterion.age_range.type
     FROM ad_group_criterion
-    WHERE ad_group.id = {ad_group_id}
+    WHERE ad_group.id = {validate_numeric_id(ad_group_id, 'ad_group_id')}
       AND ad_group_criterion.type = AGE_RANGE
       AND ad_group_criterion.age_range.type = {age_range}
   """
@@ -342,7 +343,7 @@ def set_gender_bid_modifier(
       ad_group_criterion.criterion_id,
       ad_group_criterion.gender.type
     FROM ad_group_criterion
-    WHERE ad_group.id = {ad_group_id}
+    WHERE ad_group.id = {validate_numeric_id(ad_group_id, 'ad_group_id')}
       AND ad_group_criterion.type = GENDER
       AND ad_group_criterion.gender.type = {gender}
   """
@@ -420,7 +421,7 @@ def set_device_bid_modifier(
       campaign_criterion.criterion_id,
       campaign_criterion.device.type
     FROM campaign_criterion
-    WHERE campaign.id = {campaign_id}
+    WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND campaign_criterion.type = DEVICE
       AND campaign_criterion.device.type = {device}
   """
@@ -491,7 +492,7 @@ def list_ad_group_demographics(
       ad_group_criterion.negative,
       ad_group_criterion.status
     FROM ad_group_criterion
-    WHERE ad_group.campaign.id = {campaign_id}
+    WHERE ad_group.campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND ad_group_criterion.type IN (AGE_RANGE, GENDER)
   """
   device_query = f"""
@@ -500,7 +501,7 @@ def list_ad_group_demographics(
       campaign_criterion.device.type,
       campaign_criterion.bid_modifier
     FROM campaign_criterion
-    WHERE campaign.id = {campaign_id}
+    WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND campaign_criterion.type = DEVICE
   """
   ag_result = execute_gaql(query=age_gender_query, customer_id=customer_id,
@@ -586,7 +587,7 @@ def set_ad_schedule(
   existing_query = f"""
     SELECT campaign_criterion.resource_name
     FROM campaign_criterion
-    WHERE campaign.id = {campaign_id}
+    WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND campaign_criterion.type = AD_SCHEDULE
   """
   existing = execute_gaql(query=existing_query, customer_id=customer_id,
@@ -670,7 +671,7 @@ def list_ad_schedules(
       campaign_criterion.ad_schedule.end_minute,
       campaign_criterion.resource_name
     FROM campaign_criterion
-    WHERE campaign.id = {campaign_id}
+    WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND campaign_criterion.type = AD_SCHEDULE
     ORDER BY campaign_criterion.ad_schedule.day_of_week,
              campaign_criterion.ad_schedule.start_hour

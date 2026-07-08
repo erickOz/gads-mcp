@@ -6,6 +6,7 @@ from fastmcp.exceptions import ToolError
 
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import execute_gaql
+from ads_mcp.tools.validation import validate_id_list
 
 
 DateRange = Literal[
@@ -77,7 +78,9 @@ def get_campaign_performance(
   """
 
   if campaign_ids:
-    ids_str = ", ".join(f"'{cid}'" for cid in campaign_ids)
+    ids_str = ", ".join(
+        f"'{cid}'" for cid in validate_id_list(campaign_ids, "campaign_id")
+    )
     gaql_query += f" AND campaign.id IN ({ids_str})"
 
   gaql_query += """
@@ -163,10 +166,14 @@ def get_search_terms_report(
   """
 
   if campaign_ids:
-    ids_str = ", ".join(f"'{cid}'" for cid in campaign_ids)
+    ids_str = ", ".join(
+        f"'{cid}'" for cid in validate_id_list(campaign_ids, "campaign_id")
+    )
     gaql += f" AND campaign.id IN ({ids_str})"
   if ad_group_ids:
-    ids_str = ", ".join(f"'{aid}'" for aid in ad_group_ids)
+    ids_str = ", ".join(
+        f"'{aid}'" for aid in validate_id_list(ad_group_ids, "ad_group_id")
+    )
     gaql += f" AND ad_group.id IN ({ids_str})"
   if min_impressions > 0:
     gaql += f" AND metrics.impressions >= {min_impressions}"
@@ -263,10 +270,14 @@ def get_keyword_performance(
   if not include_paused:
     gaql += " AND ad_group_criterion.status = 'ENABLED'"
   if campaign_ids:
-    ids_str = ", ".join(f"'{cid}'" for cid in campaign_ids)
+    ids_str = ", ".join(
+        f"'{cid}'" for cid in validate_id_list(campaign_ids, "campaign_id")
+    )
     gaql += f" AND campaign.id IN ({ids_str})"
   if ad_group_ids:
-    ids_str = ", ".join(f"'{aid}'" for aid in ad_group_ids)
+    ids_str = ", ".join(
+        f"'{aid}'" for aid in validate_id_list(ad_group_ids, "ad_group_id")
+    )
     gaql += f" AND ad_group.id IN ({ids_str})"
 
   gaql += f" ORDER BY metrics.impressions DESC LIMIT {limit}"
@@ -359,10 +370,14 @@ def get_ad_performance(
   """
 
   if campaign_ids:
-    ids_str = ", ".join(f"'{cid}'" for cid in campaign_ids)
+    ids_str = ", ".join(
+        f"'{cid}'" for cid in validate_id_list(campaign_ids, "campaign_id")
+    )
     gaql += f" AND campaign.id IN ({ids_str})"
   if ad_group_ids:
-    ids_str = ", ".join(f"'{aid}'" for aid in ad_group_ids)
+    ids_str = ", ".join(
+        f"'{aid}'" for aid in validate_id_list(ad_group_ids, "ad_group_id")
+    )
     gaql += f" AND ad_group.id IN ({ids_str})"
 
   gaql += f" ORDER BY metrics.impressions DESC LIMIT {limit}"
@@ -449,10 +464,14 @@ def get_quality_score_report(
   """
 
   if campaign_ids:
-    ids_str = ", ".join(f"'{cid}'" for cid in campaign_ids)
+    ids_str = ", ".join(
+        f"'{cid}'" for cid in validate_id_list(campaign_ids, "campaign_id")
+    )
     gaql += f" AND campaign.id IN ({ids_str})"
   if ad_group_ids:
-    ids_str = ", ".join(f"'{aid}'" for aid in ad_group_ids)
+    ids_str = ", ".join(
+        f"'{aid}'" for aid in validate_id_list(ad_group_ids, "ad_group_id")
+    )
     gaql += f" AND ad_group.id IN ({ids_str})"
 
   gaql += f" ORDER BY ad_group_criterion.quality_info.quality_score ASC LIMIT {limit}"
@@ -596,7 +615,9 @@ def get_auction_insights(
   """
 
   if campaign_ids:
-    ids_str = ", ".join(f"'{cid}'" for cid in campaign_ids)
+    ids_str = ", ".join(
+        f"'{cid}'" for cid in validate_id_list(campaign_ids, "campaign_id")
+    )
     gaql += f" AND campaign.id IN ({ids_str})"
 
   gaql += " ORDER BY metrics.search_impression_share DESC"

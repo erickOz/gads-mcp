@@ -19,6 +19,7 @@ import os
 from ads_mcp.config import register_enabled_tools
 from ads_mcp.coordinator import mcp_server
 from ads_mcp.scripts.generate_views import update_views_yaml
+from ads_mcp.skill_registry import register_skills
 from ads_mcp.tools import api
 
 import dotenv
@@ -31,6 +32,8 @@ dotenv.load_dotenv()
 
 # Register tools according to tools_config.yaml (all namespaces by default).
 register_enabled_tools()
+# Expose the SKILL.md playbooks as MCP prompts.
+register_skills()
 
 if os.getenv("USE_GOOGLE_OAUTH_ACCESS_TOKEN"):
   mcp_server.auth = GoogleTokenVerifier()

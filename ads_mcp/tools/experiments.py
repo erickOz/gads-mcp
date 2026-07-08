@@ -7,6 +7,18 @@ from google.ads.googleads.errors import GoogleAdsException
 
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import execute_gaql, get_ads_client
+from ads_mcp.tools.validation import validate_enum
+
+
+EXPERIMENT_STATUSES = frozenset({
+    "SETUP",
+    "INITIATED",
+    "ENABLED",
+    "HALTED",
+    "PROMOTED",
+    "GRADUATED",
+    "REMOVED",
+})
 
 
 ExperimentType = Literal[
@@ -160,6 +172,7 @@ def list_experiments(
     FROM experiment
   """
   if status_filter:
+    validate_enum(status_filter, EXPERIMENT_STATUSES, "status_filter")
     query += f"\n    WHERE experiment.status = '{status_filter}'"
   query += "\n    ORDER BY experiment.name"
 

@@ -12,6 +12,7 @@ from google.ads.googleads.errors import GoogleAdsException
 
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import get_ads_client, execute_gaql
+from ads_mcp.tools.validation import validate_numeric_id
 
 
 AssetLevel = Literal["ACCOUNT", "CAMPAIGN", "AD_GROUP"]
@@ -476,12 +477,12 @@ def list_assets(
     link_rn_key = "campaign_asset.resource_name"
     field_type_key = "campaign_asset.field_type"
     from_clause = "campaign_asset"
-    where_clause = f"WHERE campaign.id = {campaign_id}"
+    where_clause = f"WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}"
   else:
     link_rn_key = "ad_group_asset.resource_name"
     field_type_key = "ad_group_asset.field_type"
     from_clause = "ad_group_asset"
-    where_clause = f"WHERE ad_group.id = {ad_group_id}"
+    where_clause = f"WHERE ad_group.id = {validate_numeric_id(ad_group_id, 'ad_group_id')}"
 
   gaql_query = f"""
     SELECT
