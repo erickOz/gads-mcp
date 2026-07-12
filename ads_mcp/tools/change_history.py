@@ -1,12 +1,10 @@
 """Change history tools — audit trail for account changes."""
 
-from typing import Any, Literal
-
-from fastmcp.exceptions import ToolError
-from google.ads.googleads.errors import GoogleAdsException
+from typing import Any, Literal, get_args
 
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import execute_gaql
+from ads_mcp.tools.validation import validate_date, validate_enum
 
 
 ChangeResourceType = Literal[
@@ -57,6 +55,7 @@ def get_change_history(
       List of changes with timestamp, user_email, resource_type, operation,
       changed_fields, and old/new resource snapshots.
   """
+  validate_date(start_date, "start_date")
   query = f"""
     SELECT
       change_event.change_date_time,
@@ -70,8 +69,10 @@ def get_change_history(
     WHERE change_event.change_date_time >= '{start_date} 00:00:00'
   """
   if end_date:
+    validate_date(end_date, "end_date")
     query += f"\n      AND change_event.change_date_time <= '{end_date} 23:59:59'"
   if resource_type:
+    validate_enum(resource_type, get_args(ChangeResourceType), "resource_type")
     query += f"\n      AND change_event.change_resource_type = '{resource_type}'"
   query += f"""
     ORDER BY change_event.change_date_time DESC

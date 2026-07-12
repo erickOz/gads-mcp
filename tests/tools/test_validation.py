@@ -5,6 +5,7 @@ from ads_mcp.tools.validation import (
     validate_id_list,
     validate_enum,
     validate_resource_name,
+    validate_date,
 )
 
 
@@ -40,6 +41,16 @@ def test_validate_resource_name_ok():
 def test_validate_resource_name_rejects_unsafe(bad):
     with pytest.raises(Exception, match="unexpected characters"):
         validate_resource_name(bad, "job_resource_name")
+
+
+def test_validate_date_ok():
+    assert validate_date("2026-07-11") == "2026-07-11"
+
+
+@pytest.mark.parametrize("bad", ["2026-7-1", "2026/07/11", "2026-07-11' OR '1'='1", "today", ""])
+def test_validate_date_rejects_bad_format(bad):
+    with pytest.raises(Exception, match="YYYY-MM-DD"):
+        validate_date(bad, "start_date")
 
 
 def test_validate_enum_ok():

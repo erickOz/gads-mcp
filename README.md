@@ -43,6 +43,24 @@ Talk to your Google Ads account like you would to a colleague:
 | Raw queries | Execute any GAQL query with built-in schema reference |
 | Account | List accessible accounts (MCC support) |
 
+### Guided skills
+
+Beyond raw tools, the server ships **skill playbooks** (exposed as MCP prompts)
+that guide multi-step workflows and route you to the right tools. The server also
+sends the model onboarding instructions, so an open-ended ask ("help me with my
+account") gets an orientation instead of a tool dump.
+
+| Skill | What it does |
+|-------|-------------|
+| `start-here` | Interviews you about your goal and routes to the right workflow |
+| `account-audit` | Full account review → prioritized action plan |
+| `wasted-spend-audit` | Finds and cuts non-converting spend |
+| `campaign-launch` | Builds a new Search campaign end to end |
+| `quality-score-optimization` | Diagnoses and raises low Quality Score keywords |
+| `experiment-workflow` | Runs a safe A/B test (create → schedule → evaluate → promote) |
+| `offline-conversions` | Imports CRM conversions for Smart Bidding |
+| `account-performance-diagnostics` | Diagnoses a sudden performance drop |
+
 ---
 
 ## Quick Start

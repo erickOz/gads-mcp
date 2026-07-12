@@ -17,6 +17,8 @@ _NUMERIC_ID = re.compile(r"\d+")
 # a value cannot break out of a GAQL string literal.
 _RESOURCE_NAME = re.compile(r"[A-Za-z0-9/_~.-]+")
 
+_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
 
 def validate_numeric_id(value, field_name: str = "id") -> str:
   """Ensures ``value`` is a digits-only ID and returns it as a string.
@@ -51,6 +53,20 @@ def validate_resource_name(value, field_name: str = "resource_name") -> str:
   if not _RESOURCE_NAME.fullmatch(text):
     raise ToolError(
         f"Invalid {field_name} '{value}': contains unexpected characters."
+    )
+  return text
+
+
+def validate_date(value, field_name: str = "date") -> str:
+  """Ensures a date is 'YYYY-MM-DD' before interpolating it into GAQL.
+
+  Guards against quotes/spaces in a value that lands inside a GAQL string
+  literal. Calendar validity is left to the API.
+  """
+  text = str(value)
+  if not _DATE.fullmatch(text):
+    raise ToolError(
+        f"Invalid {field_name} '{value}': expected format YYYY-MM-DD."
     )
   return text
 

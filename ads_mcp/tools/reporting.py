@@ -2,11 +2,9 @@
 
 from typing import Any, Literal, get_args
 
-from fastmcp.exceptions import ToolError
-
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import execute_gaql
-from ads_mcp.tools.validation import validate_id_list
+from ads_mcp.tools.validation import validate_enum, validate_id_list
 
 
 DateRange = Literal[
@@ -24,16 +22,12 @@ DATE_RANGES = frozenset(get_args(DateRange))
 
 
 def _validate_date_range(date_range: str) -> None:
-  """Guards GAQL interpolation against invalid/unsafe date_range values.
+  """Guards GAQL interpolation against an invalid/unsafe date_range.
 
   The DateRange Literal is only enforced by FastMCP at the tool boundary;
   direct/programmatic calls reach the f-string GAQL injection unchecked.
   """
-  if date_range not in DATE_RANGES:
-    raise ToolError(
-        f"Invalid date_range '{date_range}'. Must be one of: "
-        f"{', '.join(sorted(DATE_RANGES))}."
-    )
+  validate_enum(date_range, DATE_RANGES, "date_range")
 
 
 @mcp.tool()
@@ -245,8 +239,8 @@ def get_keyword_performance(
       ad_group_criterion.status,
       ad_group_criterion.quality_info.quality_score,
       ad_group_criterion.quality_info.search_predicted_ctr,
-      ad_group_criterion.quality_info.ad_relevance,
-      ad_group_criterion.quality_info.landing_page_experience,
+      ad_group_criterion.quality_info.creative_quality_score,
+      ad_group_criterion.quality_info.post_click_quality_score,
       ad_group_criterion.effective_cpc_bid_micros,
       ad_group_criterion.cpc_bid_micros,
       campaign.id,
@@ -297,8 +291,8 @@ def get_keyword_performance(
         "status": row.get("ad_group_criterion.status"),
         "quality_score": row.get("ad_group_criterion.quality_info.quality_score"),
         "expected_ctr": row.get("ad_group_criterion.quality_info.search_predicted_ctr"),
-        "ad_relevance": row.get("ad_group_criterion.quality_info.ad_relevance"),
-        "landing_page_exp": row.get("ad_group_criterion.quality_info.landing_page_experience"),
+        "ad_relevance": row.get("ad_group_criterion.quality_info.creative_quality_score"),
+        "landing_page_exp": row.get("ad_group_criterion.quality_info.post_click_quality_score"),
         "cpc_bid": round(cpc_bid / 1_000_000, 2) if cpc_bid else None,
         "effective_cpc_bid": round(eff_cpc / 1_000_000, 2) if eff_cpc else None,
         "campaign_id": row.get("campaign.id"),
@@ -451,8 +445,8 @@ def get_quality_score_report(
       ad_group_criterion.status,
       ad_group_criterion.quality_info.quality_score,
       ad_group_criterion.quality_info.search_predicted_ctr,
-      ad_group_criterion.quality_info.ad_relevance,
-      ad_group_criterion.quality_info.landing_page_experience,
+      ad_group_criterion.quality_info.creative_quality_score,
+      ad_group_criterion.quality_info.post_click_quality_score,
       campaign.id,
       campaign.name,
       ad_group.id,
@@ -490,8 +484,8 @@ def get_quality_score_report(
         "status": row.get("ad_group_criterion.status"),
         "quality_score": qs,
         "expected_ctr": row.get("ad_group_criterion.quality_info.search_predicted_ctr"),
-        "ad_relevance": row.get("ad_group_criterion.quality_info.ad_relevance"),
-        "landing_page_exp": row.get("ad_group_criterion.quality_info.landing_page_experience"),
+        "ad_relevance": row.get("ad_group_criterion.quality_info.creative_quality_score"),
+        "landing_page_exp": row.get("ad_group_criterion.quality_info.post_click_quality_score"),
         "campaign_id": row.get("campaign.id"),
         "campaign_name": row.get("campaign.name"),
         "ad_group_id": row.get("ad_group.id"),

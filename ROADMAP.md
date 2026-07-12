@@ -34,8 +34,12 @@ Base sólida y verificada end-to-end (unit tests → estructura → **API real e
 - **Deuda menor**: `reporting._validate_date_range` duplica lo que hace
   `validation.validate_enum` — unificar. Extraer un helper para leer filas planas
   de `execute_gaql` (hoy el comentario "flat keys" se repite en cada módulo).
-- **Test de integración**: un smoke test que levante el server MCP en memoria y
-  liste tools/prompts (hoy se valida a mano).
+- **Test de integración**: ✅ hecho (server en memoria lista tools/prompts).
+- **Smoke test contra la API real (gated por credenciales)**: los unit tests
+  mockean `execute_gaql`, así que **no pueden** detectar campos GAQL inválidos
+  (así se coló el bug de `quality_info.ad_relevance` en v24). Un test opcional
+  que corra unas queries read-only reales cuando hay credenciales atraparía este
+  tipo de error en CI.
 - **Manejo de errores**: estandarizar el wrap de `GoogleAdsException` en todas las
   operaciones `mutate` (algunas ya lo hacen).
 

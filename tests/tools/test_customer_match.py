@@ -5,6 +5,7 @@ from ads_mcp.tools.customer_match import (
     _sha256,
     create_customer_match_list,
     get_customer_match_job_status,
+    upload_customer_match_members,
 )
 
 
@@ -47,6 +48,36 @@ def test_get_job_status_reads_flat_key(mocker):
     )
 
     assert out["status"] == "RUNNING"
+
+
+def test_upload_customer_match_members_queues_and_runs(mocker):
+    mock_client = MagicMock()
+    mocker.patch(
+        "ads_mcp.tools.customer_match.get_ads_client", return_value=mock_client
+    )
+    service = mock_client.get_service.return_value
+    service.create_offline_user_data_job.return_value.resource_name = (
+        "customers/123/offlineUserDataJobs/55"
+    )
+
+    out = upload_customer_match_members(
+        "123",
+        "999",
+        [{"email": "a@b.com"}, {"phone": "+14155551234"}],
+    )
+
+    service.create_offline_user_data_job.assert_called_once()
+    service.add_offline_user_data_job_operations.assert_called_once()
+    service.run_offline_user_data_job.assert_called_once()
+    assert out["job_resource_name"] == "customers/123/offlineUserDataJobs/55"
+    assert out["members_queued"] == 2
+    assert out["status"] == "RUNNING"
+
+
+def test_upload_customer_match_members_rejects_empty(mocker):
+    mocker.patch("ads_mcp.tools.customer_match.get_ads_client")
+    with pytest.raises(Exception, match="cannot be empty"):
+        upload_customer_match_members("123", "999", [])
 
 
 def test_get_job_status_rejects_injection(mocker):

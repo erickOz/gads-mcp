@@ -117,9 +117,12 @@ def upload_customer_match_members(
   )
   job.customer_match_user_list_metadata.user_list = user_list_resource
 
-  job_response = offline_service.create_offline_user_data_job(
-      customer_id=customer_id, job=job
-  )
+  try:
+    job_response = offline_service.create_offline_user_data_job(
+        customer_id=customer_id, job=job
+    )
+  except GoogleAdsException as e:
+    raise ToolError("\n".join(str(i) for i in e.failure.errors)) from e
   job_resource_name = job_response.resource_name
 
   operations = []
