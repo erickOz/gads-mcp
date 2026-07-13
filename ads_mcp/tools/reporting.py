@@ -344,7 +344,7 @@ def get_ad_performance(
     SELECT
       ad_group_ad.ad.id,
       ad_group_ad.ad.name,
-      ad_group_ad.ad.type_,
+      ad_group_ad.ad.type,
       ad_group_ad.status,
       ad_group_ad.ad_strength,
       ad_group_ad.policy_summary.approval_status,
@@ -385,7 +385,7 @@ def get_ad_performance(
     rows.append({
         "ad_id": row.get("ad_group_ad.ad.id"),
         "ad_name": row.get("ad_group_ad.ad.name"),
-        "ad_type": row.get("ad_group_ad.ad.type_"),
+        "ad_type": row.get("ad_group_ad.ad.type"),
         "status": row.get("ad_group_ad.status"),
         "ad_strength": row.get("ad_group_ad.ad_strength"),
         "approval_status": row.get("ad_group_ad.policy_summary.approval_status"),
@@ -568,18 +568,21 @@ def get_auction_insights(
     campaign_ids: list[str] | None = None,
     login_customer_id: str | None = None,
 ) -> dict:
-  """Returns Auction Insights report showing competitor overlap and positioning.
+  """Returns impression-share auction insights per campaign.
 
-  Reveals which competitors are bidding on the same auctions and how your
-  impression share, overlap rate, and position compare to theirs.
+  Shows how much of the available auction you're capturing and where you're
+  losing it — to ad rank (bids/quality) or to budget.
 
-  Metrics returned:
-  - search_impression_share: Your IS vs total eligible impressions.
-  - overlap_rate: How often a competitor's ad appeared when yours did.
-  - position_above_rate: How often competitor appeared above yours.
-  - search_top_impression_share: Impressions at top of page / eligible.
-  - search_abs_top_impression_share: Impressions in position 1 / eligible.
-  - outranking_share: How often you ranked above competitor or they didn't show.
+  Note: competitor-domain-level data (overlap rate, outranking share) is NOT
+  exposed by the Google Ads API — it's only in the Ads UI. This returns the
+  account's own impression-share metrics, which are the actionable signal.
+
+  Metrics returned (all 0..1 fractions):
+  - impression_share: impressions won / total eligible.
+  - top_impression_share: impressions shown at the top of the page.
+  - abs_top_impression_share: impressions shown in the very first position.
+  - rank_lost_impression_share: share lost to ad rank (bid or quality).
+  - budget_lost_impression_share: share lost to limited budget.
 
   Args:
       customer_id: The ID of the customer account (digits only).
@@ -588,7 +591,7 @@ def get_auction_insights(
       login_customer_id: Optional MCC account ID.
 
   Returns:
-      List of competitor domains with auction insight metrics per campaign.
+      Per-campaign impression share and where it is being lost.
   """
   _validate_date_range(date_range)
 
@@ -596,13 +599,11 @@ def get_auction_insights(
     SELECT
       campaign.id,
       campaign.name,
-      segments.auction_insight.domain,
       metrics.search_impression_share,
-      metrics.search_overlap_rate,
-      metrics.search_position_above_rate,
       metrics.search_top_impression_share,
       metrics.search_absolute_top_impression_share,
-      metrics.search_outranking_share
+      metrics.search_rank_lost_impression_share,
+      metrics.search_budget_lost_impression_share
     FROM campaign
     WHERE segments.date DURING {date_range}
       AND campaign.status != 'REMOVED'
@@ -623,13 +624,11 @@ def get_auction_insights(
     rows.append({
         "campaign_id": row.get("campaign.id"),
         "campaign_name": row.get("campaign.name"),
-        "competitor_domain": row.get("segments.auction_insight.domain"),
         "impression_share": row.get("metrics.search_impression_share"),
-        "overlap_rate": row.get("metrics.search_overlap_rate"),
-        "position_above_rate": row.get("metrics.search_position_above_rate"),
         "top_impression_share": row.get("metrics.search_top_impression_share"),
         "abs_top_impression_share": row.get("metrics.search_absolute_top_impression_share"),
-        "outranking_share": row.get("metrics.search_outranking_share"),
+        "rank_lost_impression_share": row.get("metrics.search_rank_lost_impression_share"),
+        "budget_lost_impression_share": row.get("metrics.search_budget_lost_impression_share"),
     })
 
   return {"auction_insights": rows, "total": len(rows)}

@@ -118,7 +118,7 @@ bundled default. Omitting `namespaces:` enables everything. See `ads_mcp/config.
 | `get_keyword_performance` | Quality Score, bids, impression share per keyword |
 | `get_search_terms_report` | Actual user queries that triggered your ads |
 | `get_quality_score_report` | Quality Score breakdown (ad relevance, CTR, landing page) |
-| `get_auction_insights` | Competitor overlap rates, impression share, outranking share |
+| `get_auction_insights` | Impression share per campaign + share lost to ad rank vs budget |
 | `get_ad_performance` | Ad strength, approval status, metrics per creative |
 | `execute_gaql` | Run any custom Google Ads Query Language query |
 
