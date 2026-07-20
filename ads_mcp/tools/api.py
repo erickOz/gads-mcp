@@ -26,6 +26,8 @@ from google.ads.googleads.util import get_nested_attr
 from google.ads.googleads.v24.services.services.customer_service import CustomerServiceClient
 from google.ads.googleads.v24.services.services.google_ads_service import GoogleAdsServiceClient
 from google.oauth2.credentials import Credentials
+from google.protobuf import json_format
+from google.protobuf.message import Message as ProtobufMessage
 import proto
 import yaml
 
@@ -138,6 +140,13 @@ def format_value(value: Any) -> Any:
     return_value = json.loads(return_value)
   elif isinstance(value, proto.Enum):
     return_value = value.name
+  elif isinstance(value, ProtobufMessage):
+    # Raw protobuf well-known types (e.g. the FieldMask on
+    # change_event.changed_fields) are not proto-plus messages, so they fall
+    # through to here. Convert via the canonical protobuf->JSON mapping so the
+    # value stays JSON-serializable (a FieldMask becomes its comma-joined path
+    # string) instead of leaking a non-serializable object into the result.
+    return_value = json.loads(json_format.MessageToJson(value))
   else:
     return_value = value
 

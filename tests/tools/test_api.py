@@ -81,6 +81,18 @@ def test_format_value(mocker):
   assert api.format_value("string") == "string"
   assert api.format_value(123) == 123
 
+  # Raw protobuf well-known types (e.g. the FieldMask on
+  # change_event.changed_fields) must serialize instead of leaking a
+  # non-JSON-serializable object into the result.
+  from google.protobuf.field_mask_pb2 import FieldMask  # noqa: PLC0415
+
+  field_mask = FieldMask(paths=["campaign.status", "campaign.name"])
+  result = api.format_value(field_mask)
+  assert result == "campaign.status,campaign.name"
+  import json as _json  # noqa: PLC0415
+
+  _json.dumps(result)  # must not raise
+
 
 @mock.patch("ads_mcp.tools.api.os.path.isfile", return_value=True)
 @mock.patch("ads_mcp.tools.api.GoogleAdsClient")
