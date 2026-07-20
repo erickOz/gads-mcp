@@ -1,5 +1,6 @@
 """Change history tools — audit trail for account changes."""
 
+from datetime import date, datetime, timedelta
 from typing import Any, Literal, get_args
 
 from ads_mcp.coordinator import mcp_server as mcp
@@ -56,6 +57,18 @@ def get_change_history(
       changed_fields, and old/new resource snapshots.
   """
   validate_date(start_date, "start_date")
+  # The change_event resource only exposes the last 30 days; a start_date older
+  # than that is rejected (START_DATE_TOO_OLD). Clamp it to the earliest date the
+  # API will accept so a "last N days" call never errors on the boundary.
+  earliest = date.today() - timedelta(days=29)
+  if datetime.strptime(start_date, "%Y-%m-%d").date() < earliest:
+    start_date = earliest.isoformat()
+  # The change_event resource requires a BOUNDED date range; with only a lower
+  # bound the API rejects the query (CHANGE_DATE_RANGE_INFINITE). Default the
+  # upper bound to today so the common "since <date>" call works.
+  if end_date is None:
+    end_date = date.today().isoformat()
+  validate_date(end_date, "end_date")
   query = f"""
     SELECT
       change_event.change_date_time,
@@ -67,10 +80,8 @@ def get_change_history(
       change_event.client_type
     FROM change_event
     WHERE change_event.change_date_time >= '{start_date} 00:00:00'
+      AND change_event.change_date_time <= '{end_date} 23:59:59'
   """
-  if end_date:
-    validate_date(end_date, "end_date")
-    query += f"\n      AND change_event.change_date_time <= '{end_date} 23:59:59'"
   if resource_type:
     validate_enum(resource_type, get_args(ChangeResourceType), "resource_type")
     query += f"\n      AND change_event.change_resource_type = '{resource_type}'"

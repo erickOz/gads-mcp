@@ -26,3 +26,6 @@ google-ads.yaml
 # Test files
 .coverage
 .pytest_cache
+
+# Client analysis / business context (never publish)
+docs/clientes/

@@ -157,7 +157,7 @@ def execute_gaql(
     query: str,
     customer_id: str,
     login_customer_id: str | None = None,
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
   """Executes a Google Ads Query Language (GAQL) query to get reporting data.
 
   Args:
@@ -169,7 +169,8 @@ def execute_gaql(
           In most cases, a default account is set, it could be optional.
 
   Returns:
-      An array of object, each object representing a row of the query results.
+      A dict ``{"data": [...]}`` whose ``data`` array holds one object per
+      result row (empty when the query matches nothing).
   """
   query = preprocess_gaql(query)
   ads_client = get_ads_client()
