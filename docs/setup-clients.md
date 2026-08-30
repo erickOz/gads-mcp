@@ -27,6 +27,13 @@ con `uv sync` (el editable install guarda rutas absolutas):
 | Codex | `~/.codex/config.toml` → `[mcp_servers.google-ads-mcp]` |
 | OpenCode | `~/.config/opencode/opencode.jsonc` → `mcp.google-ads` |
 
+Para reapuntarlos todos de golpe tras un movimiento:
+
+```bash
+python3 deploy/repoint-mcp-configs.py '<ruta-vieja>' '<ruta-nueva>' --apply
+uv sync   # obligatorio: el editable install guarda rutas absolutas
+```
+
 Configuración en uso hoy (stdio local, credenciales por YAML):
 
 ```jsonc

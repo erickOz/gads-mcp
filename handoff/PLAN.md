@@ -41,7 +41,7 @@ versión pública compacta** como showcase.
 
 ## Fase 1: Entorno y conectividad de clientes
 
-- [~] T-01 **Sacar el repo de Google Drive y dejar el MCP conectando en los 4 clientes**
+- [x] T-01 **Sacar el repo de Google Drive y dejar el MCP conectando en los 4 clientes**
       (Claude Desktop, Claude Code, Codex, OpenCode). Mover a
       `/Users/erickoz/Developer/gads-mcp`, recrear `.venv` con `uv sync`, repuntar las
       5 configs y verificar el handshake MCP. Documentar en `docs/setup-clients.md`.
