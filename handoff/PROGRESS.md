@@ -6,6 +6,70 @@
 
 ---
 
+## 2026-08-30 — Verificación de los 4 clientes (cierra el pendiente de T-01/T-02) — Claude Code / Opus 5
+
+- **Hecho:**
+  - **Los 4 clientes quedan verificados llamando a la API real.** La entrada anterior
+    daba esto por imposible sin el usuario ("ningún agente puede hacerlo"): **era
+    falso**. Codex y OpenCode tienen CLI headless, y Claude Desktop deja logs.
+    - **Claude Code** (Opus 5): `list_accessible_accounts` → `["8774376180"]`.
+    - **Claude Desktop**: su log `~/Library/Logs/Claude/mcp-server-google-ads-mcp.log`
+      muestra arranque con la ruta nueva a las 22:44:49Z, `initialize` + `tools/list`
+      OK, y un **`tools/call` real con resultado** a las 22:48:27Z (1.16 s). Sin
+      errores posteriores.
+    - **Codex** (`gpt-5.6-luna`, codex-cli 0.149.0): `codex exec` → `["8774376180"]`.
+    - **OpenCode** (`kimi-k2.7-code`, v1.18.21): `opencode run` → `["8774376180"]`.
+  - **Nuevo script `deploy/smoke-clients.py`.** Lee las 5 configs reales de cliente y
+    lanza el comando exacto de cada una con `cwd=/`. Resultado: **5/5 en ✓, 78 tools**,
+    `initialize` entre 3.2 s y 8.9 s. Hace reproducible la verificación E1.
+
+- **Pendiente:**
+  - **T-02b — borrar `gads-mcp.RETIRADO` de Drive.** Su bloqueante real (¿funcionan
+    los 4 clientes?) **ya está resuelto**. Lo único que queda es el margen de días
+    que pedía T-02, que es criterio del usuario, no técnico.
+  - T-03 (allowlist OAuth) sigue siendo el bloqueante 🔴 del deploy remoto.
+
+- **Decisiones:**
+  - **No se tocó la config de Codex.** El override de aprobación se pasó con `-c` solo
+    para esa invocación. Pre-aprobar tools de forma permanente es decisión del usuario
+    y **debería limitarse a las de lectura**: auto-aprobar las de escritura daría a un
+    agente vía libre para mutar campañas reales sin confirmación.
+  - **`deploy/smoke-clients.py` lee las configs en vez de hardcodear rutas**, que es
+    justo el error que causó T-01 (la ruta del proyecto repetida en 5 sitios).
+
+- **Gotchas (le ahorran horas al siguiente):**
+  - **Se puede verificar Codex y OpenCode sin GUI ni usuario:**
+    `codex exec "<prompt>"` y `opencode run --dir <ruta> "<prompt>"`.
+  - **Codex falla toda llamada MCP en headless** con `MCP tool call requires approval,
+    but approval policy is never`. **No es un fallo de conexión** — el server arranca
+    y la tool se resuelve. En la app interactiva el usuario simplemente aprueba.
+    Para headless, override por invocación:
+    `codex exec -c 'mcp_servers.google-ads-mcp.tools.<tool>.approval_mode="approve"' …`
+    (`analytics-mcp` ya tiene 3 tools pre-aprobadas así en `~/.codex/config.toml`;
+    `google-ads-mcp` no tiene ninguna.)
+  - **En OpenCode el server se llama `google-ads`**, no `google-ads-mcp`, y la tool
+    aparece como `google-ads_list_accessible_accounts`. Si le pides el nombre
+    equivocado, el agente no la encuentra.
+  - **El primer arranque tras `uv sync` supera el timeout de 60 s de Claude Desktop.**
+    En el log: arranque a las 22:17:50Z → `Couldn't start for Cowork and Code sessions.
+    Error: Request timed out` a las 22:18:50Z, exacto a los 60 s. Al reintentar ya
+    caliente, `initialize` tardó 18 s y funcionó. **Tras un `uv sync`, arranca el
+    server a mano una vez antes de abrir los clientes.**
+  - Los logs por server de Claude Desktop están en `~/Library/Logs/Claude/mcp-server-<nombre>.log`.
+    Es la forma de auditar un cliente GUI sin tocarlo.
+
+- **Verificación (E1 + E3):**
+  - `.venv/bin/python deploy/smoke-clients.py` → 5/5 ✓, 78 tools cada una.
+  - 3 llamadas end-to-end a la API real desde 3 agentes distintos (Opus 5, gpt-5.6-luna,
+    kimi-k2.7-code), las tres devolviendo el MCC `8774376180`.
+  - Claude Desktop auditado por log (no se pudo ejercitar: es GUI).
+  - Tests: **120 passed** (sin cambios de código en esta entrada; solo se añadió
+    `deploy/smoke-clients.py`, que no entra en la suite).
+
+- **Último commit:** ver `git log -1` (`test: verificar el MCP en los 4 clientes…`).
+
+---
+
 ## 2026-08-30 — T-02 (completa) + cierre del pendiente de T-01 — Claude Code / Opus 5
 
 - **Hecho:**

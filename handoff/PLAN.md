@@ -47,10 +47,12 @@ versión pública compacta** como showcase.
       5 configs y verificar el handshake MCP. Documentar en `docs/setup-clients.md`.
 - [x] T-02 **Retirar la copia de Google Drive.** Renombrada a `gads-mcp.RETIRADO`
       (2026-08-30). El respaldo real es `origin` en GitHub, ya al día en `f1edf92`.
-- [ ] T-02b **Borrar definitivamente `gads-mcp.RETIRADO`** de Drive, tras unos días
-      con los 4 clientes funcionando. Hoy solo Claude Code está verificado (llamada
-      en vivo a la API); Claude Desktop, Codex y OpenCode necesitan que el usuario
-      los reinicie y confirme. Antes de borrar, releer los gotchas de T-02.
+- [ ] T-02b **Borrar definitivamente `gads-mcp.RETIRADO`** de Drive. Los 4 clientes
+      **ya están verificados** contra la API real (2026-08-30): Claude Code, Codex
+      (`gpt-5.6-luna`) y OpenCode (`kimi-k2.7-code`) por llamada end-to-end, y Claude
+      Desktop por su log de `tools/call`. Solo queda el margen de días que pedía T-02,
+      que es criterio del usuario. Antes de borrar, releer los gotchas de T-02.
+      Reverificar con `.venv/bin/python deploy/smoke-clients.py` (espera 5/5, 78 tools).
 
 ## Fase 2: Endurecer el deploy remoto 🌐
 
