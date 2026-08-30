@@ -29,3 +29,5 @@ google-ads.yaml
 
 # Client analysis / business context (never publish)
 docs/clientes/
+# macOS
+.DS_Store
