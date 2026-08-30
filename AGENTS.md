@@ -123,3 +123,10 @@ contradicción en `handoff/PROGRESS.md` y baja la confianza aquí.
 - **Si mueves o renombras la carpeta, recrea el `.venv` con `uv sync`.** El editable
   install guarda rutas absolutas en `__editable___*_finder.py`; copiarlo da
   `ModuleNotFoundError: No module named 'ads_mcp'`. (T-01)
+- **`origin` (`github.com/erickOz/gads-mcp`) es PÚBLICO.** Todo lo que escribas en
+  `handoff/`, `AGENTS.md` o `docs/` se publica al pushear: hoy están ahí el correo
+  de trabajo del usuario, el nombre del cliente (Hype Digital, MCC de ~15 cuentas)
+  y las rutas locales. Decisión consciente del usuario (T-02), no un descuido: no
+  lo "arregles" por tu cuenta. Pero al redactar, no agregues credenciales, IDs de
+  cuenta ni datos de clientes nuevos. Ojo con `handoff/PLAN.md` T-03: describe un
+  agujero de OAuth sin parchear, ya público. (T-02)

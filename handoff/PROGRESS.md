@@ -6,6 +6,83 @@
 
 ---
 
+## 2026-08-30 — T-02 (completa) + cierre del pendiente de T-01 — Claude Code / Opus 5
+
+- **Hecho:**
+  - **Cerrado el pendiente de T-01: el respaldo en GitHub ya existe.** `origin`
+    estaba 4 commits atrás (desde el 13 de julio). Merge fast-forward de
+    `setup/handoff-y-conectividad` a `main` y push: `origin/main` pasa de `90fd35b`
+    a `f1edf92`. Subieron los 2 fixes de GAQL (`a44de8a`, `d216d02`) y los 2 de T-01
+    (`AGENTS.md`, `handoff/`, `docs/setup-clients.md`, `deploy/repoint-mcp-configs.py`).
+  - **T-02: copia de Drive retirada.** Renombrada a `gads-mcp.RETIRADO` en
+    `…/Mi unidad/4. Proyectos/projects-mkt/`. **No borrada** (ver Pendiente).
+  - **Auditada la copia de Drive antes de retirarla.** Estaba en `d216d02` (todo ya
+    en `origin`). Sus cambios sin commitear resultaron ser ruido: los `.DS_Store`
+    borrados, y `run_mcp.sh` + `deploy/cloud-run.sh` con **cambio de modo solamente**
+    (755→644, la corrupción de bit de ejecución que hace Drive), 0 líneas de diff.
+  - **Rescate verificado de un `AGENTS.md` sin trackear que había en Drive**: no era
+    el del handoff sino la vieja "Codex Setup Guide" (11.5 KB), la variante para Codex
+    del mismo documento. Su contenido íntegro (tabla de las 78 tools, Example Prompts,
+    Credentials Reference, `tools_config`, Cloud Run) ya está en `docs/setup-clients.md`.
+    No se perdió nada.
+  - Nuevo aprendizaje en `AGENTS.md`: **`origin` es público**.
+
+- **Pendiente:**
+  - **T-02b — borrar `gads-mcp.RETIRADO` de Drive.** Deliberadamente NO se borró:
+    el propio T-02 gatilla el borrado "tras confirmar", y esa confirmación no existe
+    todavía. El renombrado es reversible; el borrado no.
+  - **Verificación humana en 3 clientes.** Solo **Claude Code** quedó verificado, y
+    esta vez de verdad: llamada en vivo `list_accessible_accounts` → MCC `8774376180`.
+    Claude Desktop, Codex y OpenCode siguen sin verificar; hay que **reiniciarlos** y
+    confirmar que `google-ads-mcp` aparece conectado. Ningún agente puede hacerlo.
+  - Sigue abierto lo de siempre: T-03 (allowlist OAuth) es el bloqueante 🔴 del deploy.
+
+- **Decisiones:**
+  - **Pushear al repo público tal cual, sin cambiar la visibilidad.** Se le advirtió
+    al usuario en detalle que `erickOz/gads-mcp` es público (no es un fork; creado el
+    2026-04-13, 0 estrellas, sin descripción) y que el push publicaría su correo de
+    trabajo, "Hype Digital / MCC de ~15 cuentas", las rutas locales y la descripción
+    del agujero de OAuth de T-03. **El usuario lo confirmó explícitamente.** Es una
+    decisión suya, no un descuido: **no la revuelvas**. Revertir la visibilidad es
+    `gh repo edit erickOz/gads-mcp --visibility private`, pero lo ya indexado no vuelve.
+  - **Retirar por renombrado, no por borrado.** Es la primera mitad de T-02 tal como
+    está escrita, y deja marcha atrás. El borrado se separó como T-02b.
+  - **T-02 se ejecutó pese a que su precondición no se cumplía** ("unos días con los
+    4 clientes funcionando"; T-01 se cerró el mismo día y solo 1 cliente verificado).
+    Se advirtió y el usuario pidió proceder. El riesgo quedó acotado porque el push
+    a `origin` se hizo primero: ya hay respaldo real antes de tocar Drive.
+
+- **Gotchas (le ahorran horas al siguiente):**
+  - **Nunca borres la copia de Drive antes de comprobar que `origin` está al día.**
+    Aquí el diario afirmaba "el respaldo real es `origin` en GitHub" y era **falso**:
+    faltaban 4 commits. Comprueba con `git log --oneline origin/main..main`, no con
+    lo que diga `PROGRESS.md`.
+  - **Auditar la copia de Drive sin colgarse:** `git -C "<ruta drive>" status --short`
+    tarda minutos. Lánzalo en segundo plano y redirige a archivo; en macOS no hay
+    `timeout(1)` y `cmd | tail` no muestra nada hasta que termina.
+  - **Los diffs de `.sh` en Drive son casi siempre falsos positivos**: cambio de modo
+    755→644, no de contenido. Distínguelos con `git diff --summary`, no con `--stat`.
+  - `~/.claude.json` conserva una clave de *historial de proyecto* con la ruta vieja de
+    Drive. Es inofensiva (historial de sesiones de esa carpeta), **no** una ruta de MCP.
+    Las 5 configs de cliente apuntan todas a `/Users/erickoz/Developer/gads-mcp`.
+  - La config de OpenCode es `~/.config/opencode/opencode.jsonc` (**`.jsonc`**, con
+    comentarios), no `.json`, y ahí el server se llama `google-ads`, no `google-ads-mcp`.
+
+- **Verificación (E3 + E1):**
+  - **E3 — tests:** `.venv/bin/python -m pytest tests/ -q -p no:cacheprovider --ignore=tests/live`
+    → **120 passed**, corrido dos veces: antes de tocar nada y después de retirar Drive.
+  - **E1 — MCP en vivo contra la API real:** `list_accessible_accounts` → `8774376180`,
+    ejecutado **antes y después** del renombrado de Drive. Prueba handshake + auth +
+    Google Ads API v24 de punta a punta.
+  - **E1 — handshake directo:** `initialize` por stdio devuelve `serverInfo` correcto.
+  - **E0 — configs:** 0 de las 5 configs de cliente apuntan a la ruta retirada.
+  - **Push confirmado en el remoto:** `gh api repos/erickOz/gads-mcp/commits/main`
+    → `f1edf92`; `handoff/PLAN.md` y `handoff/PROGRESS.md` visibles en GitHub.
+
+- **Último commit:** ver `git log -1` (este mismo cierre, `docs: T-02 …`).
+
+---
+
 ## 2026-08-30 — T-01 (completa) + adopción del sistema — Claude Code / Opus 5
 
 - **Hecho:**

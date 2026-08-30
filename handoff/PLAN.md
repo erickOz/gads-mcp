@@ -45,9 +45,12 @@ versión pública compacta** como showcase.
       (Claude Desktop, Claude Code, Codex, OpenCode). Mover a
       `/Users/erickoz/Developer/gads-mcp`, recrear `.venv` con `uv sync`, repuntar las
       5 configs y verificar el handshake MCP. Documentar en `docs/setup-clients.md`.
-- [ ] T-02 **Retirar la copia de Google Drive** una vez confirmado que los 4 clientes
-      funcionan durante unos días (renombrar a `gads-mcp.RETIRADO` y, tras confirmar,
-      borrar). El respaldo real es `origin` en GitHub.
+- [x] T-02 **Retirar la copia de Google Drive.** Renombrada a `gads-mcp.RETIRADO`
+      (2026-08-30). El respaldo real es `origin` en GitHub, ya al día en `f1edf92`.
+- [ ] T-02b **Borrar definitivamente `gads-mcp.RETIRADO`** de Drive, tras unos días
+      con los 4 clientes funcionando. Hoy solo Claude Code está verificado (llamada
+      en vivo a la API); Claude Desktop, Codex y OpenCode necesitan que el usuario
+      los reinicie y confirme. Antes de borrar, releer los gotchas de T-02.
 
 ## Fase 2: Endurecer el deploy remoto 🌐
 
