@@ -103,6 +103,16 @@ versión pública compacta** como showcase.
       batch jobs · brand safety.
 - [ ] B-10 Los `.sh` del repo perdieron el bit de ejecución mientras vivió en Drive.
       Restaurado en T-01; si vuelve a pasar, revisar `core.fileMode` de git.
+- [ ] B-11 **Los servidores MCP se acumulan: una copia por sesión de agente, sin
+      liberarse.** Observado el 2026-08-30: 11 procesos `ads_mcp.stdio` y 6 de
+      `analytics-mcp` vivos a la vez (hasta 48 min), de 3 sesiones de Claude Code
+      (extensión VS Code) + 2 de Codex + 1 de OpenCode. Idle (0% CPU) pero con la
+      carga en 5.56 el arranque en frío superó el timeout de 30 s de Claude Code y
+      **ambos servers cayeron con `CONNECT_TIMEOUT` en plena sesión**. Cada cliente
+      lanza su propio proceso por diseño (stdio), así que el arreglo no es del MCP:
+      o se cierran las sesiones de editor que no se usan, o se acelera el arranque
+      (ver B-01), o se pasa a transporte HTTP compartido (Fase 2). Diagnóstico:
+      `ps -eo pid,ppid,etime,command | grep ads_mcp.stdio`.
 
 ## Bloqueos
 
