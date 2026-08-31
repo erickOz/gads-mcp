@@ -6,6 +6,63 @@
 
 ---
 
+## 2026-08-31 — B-12 (completa): corregidas las 3 tools rotas — Claude Code / Opus 5
+
+> Cierre preventivo por cuota: el usuario avisó a mitad de tarea. B-12 quedó
+> **terminada y verificada**; no se empezó nada más.
+
+- **Hecho:**
+  - **`list_experiments`** (`ads_mcp/tools/experiments.py`): `experiment.id` →
+    `experiment.experiment_id`, en el SELECT y en el mapeo de fila.
+  - **`list_ad_group_demographics`** (`ads_mcp/tools/targeting.py`):
+    `WHERE ad_group.campaign.id` → `WHERE campaign.id`.
+  - **`list_campaign_locations`** (`ads_mcp/tools/targeting.py`): partida en dos
+    consultas. La primera trae los criterios LOCATION; la segunda resuelve los
+    nombres desde `geo_target_constant`. Helpers nuevos `_geo_target_id()` y
+    `_lookup_geo_targets()`. **La forma del resultado no cambió**: quien consuma
+    la tool no nota nada.
+  - **7 tests nuevos.** 4 unitarios en `tests/tools/` que fallan si la query
+    vuelve a referenciar el campo malo, y 3 en `tests/live/` que ejercitan las
+    tools contra la API real, con una fixture `campaign_id` que descubre una
+    campaña activa (y hace skip si no hay).
+
+- **Pendiente:** nada de B-12. Lo siguiente en el backlog:
+  - **B-13** — backoff y propagar el mensaje real del 429 de Keyword Planner.
+  - **B-11** — los procesos MCP se acumulan (18 y 11 vivos observados).
+  - **T-02b** — borrar `gads-mcp.RETIRADO` cuando el usuario lo diga.
+  - **T-03** 🔴 — allowlist de OAuth, bloqueante del deploy remoto.
+
+- **Decisiones:**
+  - **Los dos tests unitarios que fallaron se actualizaron, no se borraron.**
+    Afirmaban el comportamiento roto (`experiment.id`, y los campos de geo en la
+    misma fila). Se reescribieron contra el comportamiento correcto y se les
+    añadió el guard de regresión al lado.
+  - **`_lookup_geo_targets` no se llama si no hay criterios LOCATION**: un
+    `IN ()` vacío da error de API. Hay un test que lo fija.
+  - **Los IDs de geo pasan por `validate_id_list`** aunque vengan de la propia
+    API, por la regla de la casa: nada se interpola en GAQL sin validar.
+
+- **Gotchas:**
+  - **Un test unitario en verde no dice nada sobre la validez de un campo GAQL.**
+    Las 3 tools llevaban rotas con la suite en verde. Al tocar una query, el
+    único juez es `tests/live/` o `deploy/audit-tools.py`.
+  - Al partir una tool en dos `execute_gaql`, los tests que la mockeaban con
+    `return_value` necesitan `side_effect` con una lista, o el segundo `call`
+    recibe el payload del primero.
+
+- **Verificación (E3 + E2 + E1):**
+  - `pytest tests/ --ignore=tests/live` → **124 passed** (eran 120).
+  - `GOOGLE_ADS_MCP_TEST_CUSTOMER_ID=1746647707
+    GOOGLE_ADS_MCP_TEST_LOGIN_CUSTOMER_ID=8774376180 pytest tests/live` →
+    **9 passed en 20.27 s** (eran 6).
+  - `deploy/audit-tools.py` → **23 OK / 1 FALLA**; las 3 tools de B-12 pasaron de
+    FALLA a OK. La falla restante es B-13 (rate limit), esperada.
+  - `pylint` sobre los dos módulos tocados → 9.58/10.
+
+- **Último commit:** ver `git log -1` (`fix: B-12 …`).
+
+---
+
 ## 2026-08-31 — Auditoría funcional del MCP (B-12, B-13) — Claude Code / Opus 5
 
 - **Hecho:**

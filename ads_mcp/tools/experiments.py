@@ -159,9 +159,12 @@ def list_experiments(
   Returns:
       List of experiments with id, name, type, status, start/end dates.
   """
+  # v24 does not expose `experiment.id`; the identifier field is
+  # `experiment.experiment_id`. Selecting `experiment.id` raises
+  # UNRECOGNIZED_FIELD and breaks the whole tool. (B-12)
   query = """
     SELECT
-      experiment.id,
+      experiment.experiment_id,
       experiment.name,
       experiment.description,
       experiment.type,
@@ -184,7 +187,7 @@ def list_experiments(
 
   experiments = [
       {
-          "experiment_id": row.get("experiment.id"),
+          "experiment_id": row.get("experiment.experiment_id"),
           "name": row.get("experiment.name"),
           "description": row.get("experiment.description"),
           "type": row.get("experiment.type"),

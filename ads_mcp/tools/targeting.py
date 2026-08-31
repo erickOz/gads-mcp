@@ -7,7 +7,7 @@ from google.ads.googleads.errors import GoogleAdsException
 
 from ads_mcp.coordinator import mcp_server as mcp
 from ads_mcp.tools.api import execute_gaql, get_ads_client
-from ads_mcp.tools.validation import validate_numeric_id
+from ads_mcp.tools.validation import validate_id_list, validate_numeric_id
 
 
 AgeRange = Literal[
@@ -132,6 +132,52 @@ def add_location_targets(
   }
 
 
+def _geo_target_id(row: dict[str, Any]) -> str:
+  """Extracts the numeric geo target ID from a campaign_criterion row."""
+  resource = row.get("campaign_criterion.location.geo_target_constant") or ""
+  return resource.split("/")[-1] if resource else ""
+
+
+def _lookup_geo_targets(
+    geo_ids: list[str],
+    customer_id: str,
+    login_customer_id: str | None = None,
+) -> dict[str, dict[str, Any]]:
+  """Resolves geo target IDs to their names, keyed by ID.
+
+  Exists because v24 rejects selecting geo_target_constant fields from
+  campaign_criterion: callers read the IDs first and resolve them here. (B-12)
+  """
+  unique = sorted(set(geo_ids))
+  if not unique:
+    return {}
+  ids = ", ".join(validate_id_list(unique, "geo_target_id"))
+  query = f"""
+    SELECT
+      geo_target_constant.id,
+      geo_target_constant.name,
+      geo_target_constant.country_code,
+      geo_target_constant.target_type,
+      geo_target_constant.canonical_name
+    FROM geo_target_constant
+    WHERE geo_target_constant.id IN ({ids})
+  """
+  result = execute_gaql(
+      query=query,
+      customer_id=customer_id,
+      login_customer_id=login_customer_id,
+  )
+  return {
+      str(row.get("geo_target_constant.id")): {
+          "name": row.get("geo_target_constant.name"),
+          "canonical_name": row.get("geo_target_constant.canonical_name"),
+          "country_code": row.get("geo_target_constant.country_code"),
+          "target_type": row.get("geo_target_constant.target_type"),
+      }
+      for row in result["data"]
+  }
+
+
 @mcp.tool()
 def list_campaign_locations(
     customer_id: str,
@@ -149,15 +195,14 @@ def list_campaign_locations(
       List of locations with criterion_id, location name, country_code,
       target_type, and whether it is a negative (exclusion).
   """
+  # v24 refuses to select geo_target_constant.* alongside campaign_criterion
+  # (PROHIBITED_RESOURCE_TYPE_IN_SELECT_CLAUSE), so the criteria come first and
+  # the names are resolved in a second query. (B-12)
   query = f"""
     SELECT
       campaign_criterion.criterion_id,
       campaign_criterion.negative,
-      campaign_criterion.location.geo_target_constant,
-      geo_target_constant.name,
-      geo_target_constant.country_code,
-      geo_target_constant.target_type,
-      geo_target_constant.canonical_name
+      campaign_criterion.location.geo_target_constant
     FROM campaign_criterion
     WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND campaign_criterion.type = LOCATION
@@ -167,17 +212,27 @@ def list_campaign_locations(
       customer_id=customer_id,
       login_customer_id=login_customer_id,
   )
+  criteria = result["data"]
+  geo_ids = [
+      _geo_target_id(row) for row in criteria if _geo_target_id(row)
+  ]
+  details = _lookup_geo_targets(
+      geo_ids,
+      customer_id=customer_id,
+      login_customer_id=login_customer_id,
+  )
+
   locations = []
-  for row in result["data"]:
-    rn = row.get("campaign_criterion.location.geo_target_constant", "")
-    geo_target_id = rn.split("/")[-1] if rn else ""
+  for row in criteria:
+    geo_target_id = _geo_target_id(row)
+    detail = details.get(geo_target_id, {})
     locations.append({
         "criterion_id": row.get("campaign_criterion.criterion_id"),
         "geo_target_id": geo_target_id,
-        "name": row.get("geo_target_constant.name"),
-        "canonical_name": row.get("geo_target_constant.canonical_name"),
-        "country_code": row.get("geo_target_constant.country_code"),
-        "target_type": row.get("geo_target_constant.target_type"),
+        "name": detail.get("name"),
+        "canonical_name": detail.get("canonical_name"),
+        "country_code": detail.get("country_code"),
+        "target_type": detail.get("target_type"),
         "negative": row.get("campaign_criterion.negative"),
     })
   return {"locations": locations, "count": len(locations)}
@@ -492,7 +547,7 @@ def list_ad_group_demographics(
       ad_group_criterion.negative,
       ad_group_criterion.status
     FROM ad_group_criterion
-    WHERE ad_group.campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
+    WHERE campaign.id = {validate_numeric_id(campaign_id, 'campaign_id')}
       AND ad_group_criterion.type IN (AGE_RANGE, GENDER)
   """
   device_query = f"""

@@ -114,10 +114,11 @@ versión pública compacta** como showcase.
       (ver B-01), o se pasa a transporte HTTP compartido (Fase 2). Diagnóstico:
       `ps -eo pid,ppid,etime,command | grep ads_mcp.stdio`.
 
-- [ ] B-12 🔴 **3 tools rotas por campos GAQL inválidos en v24** (mismo tipo que los
-      bugs de `90fd35b`/`a44de8a`/`d216d02`). Detectadas por `deploy/audit-tools.py`
-      el 2026-08-31 contra la cuenta `1746647707`. Las 3 correcciones están
-      verificadas contra la API real:
+- [x] B-12 🔴 **3 tools rotas por campos GAQL inválidos en v24** — **CORREGIDAS**
+      el 2026-08-31 (mismo tipo que los bugs de `90fd35b`/`a44de8a`/`d216d02`).
+      Detectadas por `deploy/audit-tools.py` contra la cuenta `1746647707`.
+      Verificación: auditor 23/24 OK (la restante es B-13), 124 unit tests y
+      **9 tests live** en verde. Lo que se corrigió:
       - `list_experiments` — `experiment.id` no existe; el campo correcto es
         **`experiment.experiment_id`**. (`ads_mcp/tools/experiments.py:164`, y el
         mapeo de fila en `:187`.)
@@ -128,7 +129,9 @@ versión pública compacta** como showcase.
         (`PROHIBITED_RESOURCE_TYPE_IN_SELECT_CLAUSE`). Quitándolos, la query pasa;
         hay que resolver los nombres con una segunda consulta a
         `geo_target_constant`. (`ads_mcp/tools/targeting.py:152-164`.)
-      Añadir un test en `tests/live/` por cada una: la suite mockeada no las atrapa.
+      Cada una tiene ya un guard en `tests/tools/` (que la query no vuelva a
+      referenciar el campo malo) **y** un test en `tests/live/` que la ejercita
+      contra la API. La suite mockeada sola nunca las habría atrapado.
 - [ ] B-13 🟡 **El rate limit de Keyword Planner llega al usuario como error opaco.**
       Dos llamadas seguidas a `generate_keyword_ideas` dan
       `ResourceExhausted: 429 … "Too many requests. Retry in 4 seconds."`, pero el

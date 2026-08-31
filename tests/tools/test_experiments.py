@@ -57,7 +57,7 @@ def test_list_experiments_maps_flat_keys(mocker):
     mock_execute.return_value = {
         "data": [
             {
-                "experiment.id": "77",
+                "experiment.experiment_id": "77",
                 "experiment.name": "Test A",
                 "experiment.status": "SETUP",
                 "experiment.resource_name": "customers/123/experiments/77",
@@ -69,6 +69,20 @@ def test_list_experiments_maps_flat_keys(mocker):
 
     assert result["total"] == 1
     assert result["experiments"][0]["experiment_id"] == "77"
+
+
+def test_list_experiments_does_not_select_experiment_id(mocker):
+    # Regression guard for B-12: v24 has no `experiment.id`, only
+    # `experiment.experiment_id`. Selecting the former returns
+    # UNRECOGNIZED_FIELD and breaks the tool against the real API.
+    mock_execute = mocker.patch("ads_mcp.tools.experiments.execute_gaql")
+    mock_execute.return_value = {"data": []}
+
+    list_experiments("123")
+
+    query = mock_execute.call_args.kwargs["query"]
+    assert "experiment.experiment_id" in query
+    assert "experiment.id," not in query
 
 
 def test_schedule_experiment_returns_initiated(mocker):

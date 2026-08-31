@@ -102,3 +102,55 @@ def test_auction_insights_live():
       CUSTOMER_ID, DATE_RANGE, login_customer_id=LOGIN
   )
   assert "auction_insights" in result
+
+
+# ── B-12 regression guards ──────────────────────────────────────────────────
+# These three tools shipped broken: their GAQL referenced fields v24 rejects,
+# and the mocked unit tests passed anyway because they never reach the API.
+
+
+@pytest.fixture(scope="module")
+def campaign_id():
+  """An enabled campaign in the test account, or skip."""
+  from ads_mcp.tools.api import execute_gaql
+
+  result = execute_gaql(
+      query=("SELECT campaign.id FROM campaign "
+             "WHERE campaign.status = 'ENABLED' LIMIT 1"),
+      customer_id=CUSTOMER_ID,
+      login_customer_id=LOGIN,
+  )
+  rows = result["data"]
+  if not rows:
+    pytest.skip("no enabled campaign in the test account")
+  return str(rows[0]["campaign.id"])
+
+
+def test_list_experiments_live():
+  # Guards `experiment.experiment_id`; `experiment.id` is UNRECOGNIZED_FIELD.
+  from ads_mcp.tools.experiments import list_experiments
+
+  result = list_experiments(CUSTOMER_ID, login_customer_id=LOGIN)
+  assert "experiments" in result
+
+
+def test_list_campaign_locations_live(campaign_id):
+  # Guards the two-step geo lookup: selecting geo_target_constant.* from
+  # campaign_criterion raises PROHIBITED_RESOURCE_TYPE_IN_SELECT_CLAUSE.
+  from ads_mcp.tools.targeting import list_campaign_locations
+
+  result = list_campaign_locations(
+      CUSTOMER_ID, campaign_id, login_customer_id=LOGIN
+  )
+  assert "locations" in result
+
+
+def test_list_ad_group_demographics_live(campaign_id):
+  # Guards `WHERE campaign.id`; `ad_group.campaign.id` is UNRECOGNIZED_FIELD.
+  from ads_mcp.tools.targeting import list_ad_group_demographics
+
+  result = list_ad_group_demographics(
+      CUSTOMER_ID, campaign_id, login_customer_id=LOGIN
+  )
+  assert "age_gender" in result
+  assert "devices" in result
