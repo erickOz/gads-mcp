@@ -6,6 +6,72 @@
 
 ---
 
+## 2026-08-31 — Auditoría funcional del MCP (B-12, B-13) — Claude Code / Opus 5
+
+- **Hecho:**
+  - **Auditoría tool por tool contra la API real.** Nuevo `deploy/audit-tools.py`:
+    levanta su propia instancia por stdio, descubre IDs reales (MCC → cuenta hija
+    con campaña y ad group activos) y llama a 24 tools de lectura.
+    **Resultado: 20 OK, 4 fallas.** Handshake 4-5 s, 78 tools registradas.
+  - **3 bugs reales encontrados y diagnosticados** (→ **B-12**), todos del mismo tipo
+    que `90fd35b`/`a44de8a`/`d216d02`: campos GAQL que la v24 ya no acepta. Las 3
+    correcciones quedaron **verificadas contra la API**, no supuestas:
+    `experiment.id` → `experiment.experiment_id`; `WHERE ad_group.campaign.id` →
+    `WHERE campaign.id`; y quitar los campos de `geo_target_constant` del SELECT
+    sobre `campaign_criterion`.
+  - **1 falso positivo aclarado** (→ **B-13**): `generate_keyword_ideas` **no está
+    rota**. Choca con el rate limit de Keyword Planner
+    (`ResourceExhausted: 429 … "Too many requests. Retry in 4 seconds."`). En frío
+    responde; la segunda llamada seguida falla.
+  - **Confirmado el apilamiento de B-11**: 18 procesos `ads_mcp.stdio` y 11 de
+    `analytics-mcp` vivos, con la carga en 5.46. En esta sesión ambos servers
+    cayeron con `CONNECT_TIMEOUT`.
+
+- **Pendiente:**
+  - **B-12** — aplicar las 3 correcciones + un test en `tests/live/` por cada una.
+    La suite mockeada (120 passed) **no atrapa esta clase de bug**: pasa en verde
+    con las 3 tools rotas. Ese es el punto ciego, no un descuido.
+  - **B-13** — backoff/reintento y propagar el mensaje real del 429.
+  - **B-11** — decidir entre cerrar sesiones de editor, acelerar el arranque (B-01)
+    o pasar a HTTP compartido (Fase 2).
+  - **T-02b** — borrar `gads-mcp.RETIRADO` cuando el usuario lo diga.
+
+- **Decisiones:**
+  - **No se arreglaron los bugs.** AGENTS.md manda registrarlos en el Backlog, no
+    arreglarlos de paso; y la petición era verificar. Están en B-12 con el fix ya
+    verificado, listos para una tarea propia.
+  - **`deploy/audit-tools.py` se guarda en el repo** aunque no se pidió: sin él, el
+    hallazgo no es reproducible, que es lo que exige la escalera de verificación.
+  - **La allowlist `READ_ONLY` del auditor es deliberada y no debe crecer con tools
+    de escritura**: corre contra cuentas de producción reales.
+
+- **Gotchas (le ahorran horas al siguiente):**
+  - **El payload del server no es uniforme.** `execute_gaql` y las tools de reporting
+    devuelven `{"data": [...]}`; otras `{"result": [...]}`; alguna la lista pelada.
+    Costó un falso diagnóstico. Ver `rows()` en `deploy/audit-tools.py`.
+  - **Nunca audites contra el MCC.** Pedir métricas a una cuenta manager da
+    `REQUESTED_METRICS_FOR_MANAGER` y parecen 5 tools rotas que están sanas. Hay que
+    bajar a una cuenta hija: `SELECT customer_client.id FROM customer_client
+    WHERE customer_client.manager = FALSE AND customer_client.status = 'ENABLED'`.
+  - **`Error calling tool '<nombre>'` no dice nada: la excepción real va a stderr
+    del server.** Para verla, lanza el server con `stderr` a un archivo. Así se
+    descubrió que el "fallo" de `generate_keyword_ideas` era un 429.
+  - **El parámetro de `get_reporting_view_doc` es `view`, no `view_name`.**
+  - Keyword Planner limita a ~1 petición cada 4 s por método. Al auditar, espacia
+    las llamadas o la segunda falla siempre.
+
+- **Verificación (E3 + E1 + E2):**
+  - `.venv/bin/python deploy/audit-tools.py` → **20 OK / 4 FALLAS**, reproducido 3
+    veces con el mismo resultado (las 4 fallas son estables, no intermitentes).
+  - Cada una de las 3 correcciones de B-12 se probó vía `execute_gaql` contra la
+    cuenta `1746647707`: la variante corregida devuelve OK.
+  - `pytest` → **120 passed** (sin cambios en `ads_mcp/`).
+  - `pylint deploy/audit-tools.py` → 9.77/10.
+
+- **Último commit:** ver `git log -1` (`test: auditar las 78 tools…`).
+
+---
+
 ## 2026-08-30 — Verificación de los 4 clientes (cierra el pendiente de T-01/T-02) — Claude Code / Opus 5
 
 - **Hecho:**

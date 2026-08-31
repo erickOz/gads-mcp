@@ -114,6 +114,29 @@ versión pública compacta** como showcase.
       (ver B-01), o se pasa a transporte HTTP compartido (Fase 2). Diagnóstico:
       `ps -eo pid,ppid,etime,command | grep ads_mcp.stdio`.
 
+- [ ] B-12 🔴 **3 tools rotas por campos GAQL inválidos en v24** (mismo tipo que los
+      bugs de `90fd35b`/`a44de8a`/`d216d02`). Detectadas por `deploy/audit-tools.py`
+      el 2026-08-31 contra la cuenta `1746647707`. Las 3 correcciones están
+      verificadas contra la API real:
+      - `list_experiments` — `experiment.id` no existe; el campo correcto es
+        **`experiment.experiment_id`**. (`ads_mcp/tools/experiments.py:164`, y el
+        mapeo de fila en `:187`.)
+      - `list_ad_group_demographics` — `WHERE ad_group.campaign.id` es inválido;
+        **`WHERE campaign.id`** funciona. (`ads_mcp/tools/targeting.py:495`.)
+      - `list_campaign_locations` — v24 prohíbe seleccionar campos de
+        `geo_target_constant` desde `campaign_criterion`
+        (`PROHIBITED_RESOURCE_TYPE_IN_SELECT_CLAUSE`). Quitándolos, la query pasa;
+        hay que resolver los nombres con una segunda consulta a
+        `geo_target_constant`. (`ads_mcp/tools/targeting.py:152-164`.)
+      Añadir un test en `tests/live/` por cada una: la suite mockeada no las atrapa.
+- [ ] B-13 🟡 **El rate limit de Keyword Planner llega al usuario como error opaco.**
+      Dos llamadas seguidas a `generate_keyword_ideas` dan
+      `ResourceExhausted: 429 … "Too many requests. Retry in 4 seconds."`, pero el
+      cliente MCP solo ve `Error calling tool 'generate_keyword_ideas'`: la causa y
+      el tiempo de espera quedan en stderr. La tool **no está rota** (en frío
+      responde bien). Falta backoff/reintento y propagar el mensaje real.
+      Relacionado con T-05 (cuotas) y B-05 (wrap de `GoogleAdsException`).
+
 ## Bloqueos
 
 <!-- T-XX bloqueada por: motivo, qué se necesita para desbloquear -->
